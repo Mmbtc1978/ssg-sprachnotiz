@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1f3a5f">
+<title>SSG Sprachnotiz</title>
+<style>
+  :root { --b:#1f3a5f; --b2:#2d5a8e; --g:#e9eef3; --t:#1a1a1a; --m:#6b7280; --ok:#1a7f4b; --warn:#b45309; --err:#b91c1c; --card:#fff; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; background:var(--g); color:var(--t); font-size:16px; }
+  header { background:var(--b); color:#fff; padding:14px 16px; display:flex; justify-content:space-between; align-items:center; position:sticky; top:0; z-index:5; }
+  header h1 { font-size:18px; margin:0; font-weight:600; }
+  header button { background:transparent; border:1px solid rgba(255,255,255,.5); color:#fff; border-radius:8px; padding:6px 10px; font-size:14px; }
+  main { padding:12px; max-width:720px; margin:0 auto; padding-bottom:90px; }
+  .card { background:var(--card); border-radius:12px; padding:12px; margin-bottom:12px; box-shadow:0 1px 2px rgba(0,0,0,.06); }
+  .card h2 { font-size:15px; margin:0 0 8px; color:var(--b); font-weight:600; }
+  label { display:block; font-size:13px; color:var(--m); margin:6px 0 3px; }
+  input, select, textarea { width:100%; font-size:16px; padding:10px; border:1px solid #cfd6de; border-radius:8px; background:#fff; color:var(--t); }
+  textarea { min-height:160px; resize:vertical; line-height:1.4; }
+  .row { display:flex; gap:8px; }
+  .row > * { flex:1; }
+  .btn { background:var(--b2); color:#fff; border:0; border-radius:10px; padding:12px 14px; font-size:16px; font-weight:600; width:100%; }
+  .btn.sec { background:#fff; color:var(--b2); border:1px solid var(--b2); }
+  .btn.rec { background:var(--err); }
+  .btn:disabled { opacity:.5; }
+  .bar { position:fixed; bottom:0; left:0; right:0; background:#fff; border-top:1px solid #d7dde4; padding:10px 12px; display:flex; gap:8px; z-index:5; }
+  .muted { color:var(--m); font-size:13px; }
+  .item { border:1px solid #e3e8ee; border-radius:10px; padding:10px; margin:8px 0; }
+  .item.off { opacity:.45; }
+  .item .top { display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:6px; }
+  .item .top b { font-size:14px; }
+  .item .top button { background:#fff; border:1px solid #cfd6de; border-radius:6px; padding:4px 8px; font-size:13px; }
+  .item input, .item select, .item textarea { font-size:14px; padding:7px; }
+  .item textarea { min-height:52px; }
+  .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:6px; }
+  .grid3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:6px; }
+  .tag { display:inline-block; background:var(--g); border-radius:6px; padding:2px 7px; font-size:12px; color:var(--m); }
+  .status { font-size:14px; padding:8px 10px; border-radius:8px; margin:8px 0; display:none; }
+  .status.show { display:block; }
+  .status.ok { background:#e7f5ee; color:var(--ok); }
+  .status.warn { background:#fef3e2; color:var(--warn); }
+  .status.err { background:#fde8e8; color:var(--err); }
+  .hidden { display:none !important; }
+  details summary { cursor:pointer; color:var(--b2); font-size:14px; }
+  pre { background:#f5f7f9; padding:8px; border-radius:8px; overflow:auto; font-size:12px; }
+  .empty { color:var(--m); font-size:14px; padding:6px 0; }
+</style>
+</head>
+<body>
+<header>
+  <h1>SSG Sprachnotiz</h1>
+  <button id="btnSettings">Einstellungen</button>
+</header>
+
+<main>
+  <!-- Einstellungen -->
+  <section class="card hidden" id="settings">
+    <h2>Einstellungen (bleiben nur auf diesem Gerät)</h2>
+    <label>Anthropic API-Key</label>
+    <input id="apiKey" type="password" placeholder="sk-ant-…" autocomplete="off">
+    <label>Modell</label>
+    <select id="model">
+      <option value="claude-sonnet-5-5">claude-sonnet-5-5 (Standard)</option>
+      <option value="claude-haiku-5-5">claude-haiku-5-5 (schneller, günstiger)</option>
+      <option value="claude-opus-5-5">claude-opus-5-5</option>
+    </select>
+    <label>Erfasser-Kürzel</label>
+    <input id="erfasser" value="MM">
+    <label>Häuser (Haus-ID;Name je Zeile, aus Blatt Einrichtung)</label>
+    <textarea id="haeuser" style="min-height:120px;font-size:13px"></textarea>
+    <p class="muted">Der Key wird im lokalen Speicher des Browsers abgelegt und nur an api.anthropic.com gesendet. Keine Bewohnerdaten diktieren, nur Haus, Gewerk, Ansprechpartner (dienstlich), Zahlen und Maßnahmen.</p>
+    <button class="btn" id="btnSaveSettings">Speichern</button>
+  </section>
+
+  <!-- Erfassung -->
+  <section class="card" id="capture">
+    <h2>1. Besuch</h2>
+    <div class="row">
+      <div><label>Haus</label><select id="haus"></select></div>
+    </div>
+    <div class="row">
+      <div><label>Datum</label><input id="datum" type="date"></div>
+      <div><label>Typ</label><select id="typ"><option>Einzel</option><option>Tour</option><option>Fruehstart</option></select></div>
+    </div>
+    <label>Freitext (Mikrofon oder Tastatur-Diktat)</label>
+    <textarea id="text" placeholder="z. B.: War heute im Haus, Frau Meier ist neue Einrichtungsleitung seit Oktober. Spülmaschine in der Küche kaputt, muss mit Maiko sprechen, bis nächste Woche klären. Reinigung Flure okay, Eindruck 3. HACCP-Audit lag bei 87 Punkten."></textarea>
+    <div class="row" style="margin-top:8px">
+      <button class="btn sec" id="btnMic">🎤 Aufnahme</button>
+      <button class="btn sec" id="btnClear">Leeren</button>
+    </div>
+    <div class="status" id="micStatus"></div>
+  </section>
+
+  <div class="status" id="status"></div>
+
+  <!-- Ergebnis -->
+  <section class="card hidden" id="result">
+    <h2>2. Erkannte Punkte prüfen</h2>
+    <p class="muted">Alles hier ist ein Vorschlag aus dem Freitext. Abwählen, was nicht stimmt; Felder sind editierbar. Erst „Delta exportieren" schreibt etwas.</p>
+    <div id="rueckfragen"></div>
+    <div id="cards"></div>
+    <details><summary>Delta-JSON anzeigen</summary><pre id="json"></pre></details>
+  </section>
+</main>
+
+<div class="bar">
+  <button class="btn" id="btnRun">Strukturieren</button>
+  <button class="btn sec hidden" id="btnExport">Delta exportieren</button>
+</div>
+
+<script>
+// ---------------------------------------------------------------
+// Stammdaten (Standard = Blatt Einrichtung / Dienstleistung / Kennzahl
+// der SSG-Datenmappe, Stand 30.10.2026; in den Einstellungen änderbar)
+// ---------------------------------------------------------------
+const HAEUSER_DEFAULT = `H01;St. Albertus
+H02;St. Konrad
+H03;St. Johannes Berlin
+H04;St. Josef Schoeneberg
+H05;Bernhard-Lichtenberg-Haus
+H06;Kardinal Bengsch
+H07;Franz-Jordan-Stift
+H08;St. Theresien Schoeneiche
+H09;St. Elisabeth Velten
+H10;St. Johannes Dallgow
+H11;St. Benedikt Brandenburg
+H12;Albert Hirsch Frankfurt/O.
+H13;St. Josef Stralsund
+H14;Stella Maris Heringsdorf
+H15;St. Hildegard
+H16;Sankt Stephanus
+H17;Kardinal von Galen
+H18;Maria im Felde
+H19;Johannes Zinke
+H20;Geschaeftsstelle CAH / Sitz SSG
+H21;Standort 21 (Annahme)
+H22;Standort 22 (Annahme)
+H23;Standort 23 (Annahme)`;
+
+const DL = {
+  DL1:"Kueche & Service", DL2:"Reinigung", DL3:"Waescherei",
+  DL4:"Haustechnik & Handwerk", DL5:"Empfang, Bewohnerservice, Fahrdienst", DL6:"Sonstiges / Projekte"
+};
+
+// Kennzahlen aus SSG_Kennzahlenkatalog.md (ID, Name, Gewerk); nur manuell
+// erhebbare oder per Besuch beobachtbare sind für Sprachnotizen sinnvoll,
+// der Rest bleibt zur Vollständigkeit drin.
+const KPI = [
+["K01","Kosten je Platz und Tag gesamt","Haus"],["K02","Verrechnungsvolumen je Platz und Tag","Haus"],
+["K03","Kostendeckung","Haus"],["K04","Krankenquote Haus (3-Monats-Mittel)","Haus"],["K05","Vakanzquote","Haus"],
+["K06","Fluktuation (12 Monate)","Haus"],["K07","Leiharbeitsanteil","Haus"],
+["K08","Zufriedenheit Einrichtungsleitung (Mittel ueber Gewerke)","Haus"],["K09","Besuchseindruck (Mittel ueber Gewerke)","Haus"],
+["K10","Mitarbeiterstimmung (Puls)","Haus"],
+["K11","Wareneinsatz je Bekoestigungstag","DL1"],["K12","Kosten je Bekoestigungstag gesamt","DL1"],
+["K13","Hygiene- und HACCP-Audit (Punkte)","DL1"],["K14","Zufriedenheit EL Kueche (1-5)","DL1"],
+["K15","Beschwerden Heimbeirat / Speisekommission","DL1"],["K16","Krankenquote Kueche","DL1"],
+["K17","Vakanz Koeche / Kuechenleitung","DL1"],["K18","Lebensmittelabfall je Bewohner und Tag","DL1"],["K19","Verzehr-/Teilnahmequote","DL1"],
+["K21","Kosten je m2 Reinigungsflaeche und Monat","DL2"],["K22","Leistungswert","DL2"],
+["K23","Qualitaetspruefung Reinigung (Punkte)","DL2"],["K24","Reklamationen Reinigung","DL2"],
+["K25","Krankenquote Reinigung","DL2"],["K26","Zufriedenheit EL Reinigung (1-5)","DL2"],["K27","Verbrauch Reinigungschemie je m2","DL2"],
+["K31","Kosten je kg Waesche","DL3"],["K32","Verlust- und Reklamationsquote Waesche","DL3"],
+["K33","Durchlaufzeit Bewohnerwaesche","DL3"],["K34","Hygienestatus Waescherei (RAL-GZ 992/3)","DL3"],
+["K35","Krankenquote Waescherei","DL3"],["K36","Zufriedenheit Pflege Dienstkleidung und Bewohnerwaesche","DL3"],["K37","Energie und Wasser je kg","DL3"],
+["K41","Instandhaltungskosten je Platz und Jahr","DL4"],["K42","Fremdleistungsquote Technik","DL4"],
+["K43","Prueffristen erfuellt (%)","DL4"],["K44","Offene Auflagen (Anzahl)","DL4"],["K45","Ticket-Reaktionszeit Technik","DL4"],
+["K46","Leerstandstage durch Zimmerrenovierung","DL4"],["K47","Vakanz Hausmeister / Technik","DL4"],["K48","Energie je Platz","DL4"],
+["K51","Kosten Empfang/Service/Fahrdienst je Platz und Tag","DL5"],["K52","Besetzungsquote Empfang","DL5"],
+["K53","Fahrdienst Puenktlichkeit und Ausfaelle","DL5"],["K54","Krankenquote Empfang/Service","DL5"],["K55","Zufriedenheit EL Empfang/Service (1-5)","DL5"],
+["K61","Pilotstatus (Plan/Ist der Messgroesse)","Haus"],["K62","Erledigungsquote Prios","Haus"]
+];
+
+// ---------------------------------------------------------------
+// Tool-Schema: genau das, was import_ssg_delta.py erwartet (v1)
+// ---------------------------------------------------------------
+const TOOL = {
+  name: "besuchsdelta",
+  description: "Strukturiert eine Sprachnotiz nach einem Hausbesuch in ein Besuchs-Delta nach dem SSG-Datenmodell E0. Nur Dinge aufnehmen, die im Text wirklich stehen; nichts erfinden, nichts ergänzen. Unklares in rueckfragen eintragen.",
+  input_schema: {
+    type:"object",
+    properties:{
+      besuch:{type:"object",properties:{
+        eindruck:{type:"object",description:"Besuchseindruck 1-5 je Gewerk, nur wenn im Text eine Bewertung vorkommt",
+          properties:{DL1:{type:["integer","null"]},DL2:{type:["integer","null"]},DL3:{type:["integer","null"]},DL4:{type:["integer","null"]},DL5:{type:["integer","null"]}}},
+        satz_je_gewerk:{type:"string",description:"Ein kurzer Satz je erwähntem Gewerk, Form 'DL1: …; DL2: …'"},
+        naechster_schritt:{type:"string"}
+      }},
+      ansprechpartner:{type:"array",items:{type:"object",required:["seite","rolle","name"],properties:{
+        seite:{type:"string",enum:["Kunde","SSG"]},
+        rolle:{type:"string",description:"z. B. Einrichtungsleitung, PDL, Verwaltung, Heimbeirat, HWL, Kuechenleitung, Reinigungsleitung, Waeschereileitung, Haustechnik, Empfang"},
+        name:{type:"string"},seit:{type:"string",description:"JJJJ-MM oder JJJJ, leer wenn unbekannt"},
+        hinweis_beruflich:{type:"string"},
+        ersetzt_vorgaenger:{type:"boolean",description:"true wenn der Text sagt, die Person ist NEU in dieser Rolle"}
+      }}},
+      prios:{type:"array",description:"Maßnahmen am Haus (Thema, Gewerk, Frist, Owner). Keine persönlichen Erinnerungen, die gehören in todos.",items:{type:"object",required:["dl_id","thema"],properties:{
+        dl_id:{type:"string",enum:["DL1","DL2","DL3","DL4","DL5","DL6","Haus"]},thema:{type:"string"},
+        prio:{type:"integer",minimum:1,maximum:3,description:"1 = dringend/rote Linie nah, 2 = wichtig, 3 = geplant; fehlt eine Angabe: 2"},
+        frist:{type:"string",description:"JJJJ-MM-TT, aus relativen Angaben (nächste Woche) ab Besuchsdatum berechnen; leer wenn keine Angabe"},
+        owner:{type:"string"},status:{type:"string",enum:["offen","laeuft","geplant"]},kommentar:{type:"string"}
+      }}},
+      prio_updates:{type:"array",description:"Bestehende Maßnahmen, die der Text als erledigt oder verändert meldet",items:{type:"object",required:["thema_suche","status"],properties:{
+        thema_suche:{type:"string",description:"Stichwort zum Finden der bestehenden Prio"},status:{type:"string",enum:["offen","laeuft","geplant","erledigt"]},kommentar:{type:"string"}
+      }}},
+      rote_linien:{type:"array",description:"Nur bei: Prüffrist gerissen, Hygienebeanstandung, Auflage Heimaufsicht, Schlüsselposition >3 Monate vakant",items:{type:"object",required:["dl_id","art"],properties:{
+        dl_id:{type:"string",enum:["DL1","DL2","DL3","DL4","DL5","DL6"]},art:{type:"string",enum:["Prueffrist","Hygiene","Auflage","Vakanz"]},
+        seit:{type:"string"},frist:{type:"string"},status:{type:"string"},kommentar:{type:"string"}
+      }}},
+      messwerte:{type:"array",description:"Nur Zahlen, die der Text explizit nennt und die einer Kennzahl-ID zuzuordnen sind",items:{type:"object",required:["kpi_id","wert"],properties:{
+        kpi_id:{type:"string"},dl_id:{type:"string",description:"DL1-DL6 oder Haus, passend zur Kennzahl"},
+        monat:{type:"string",description:"JJJJ-MM, Standard = Monat des Besuchs"},wert:{type:"number"},kommentar:{type:"string"}
+      }}},
+      leistung:{type:"array",description:"Beobachtungen je Gewerk: Equipment-Zustand, Status, Leitung, Hinweis",items:{type:"object",required:["dl_id"],properties:{
+        dl_id:{type:"string",enum:["DL1","DL2","DL3","DL4","DL5","DL6"]},
+        status:{type:["string","null"],enum:["eigen","teilweise","fremd","nicht angeboten",null]},
+        partner:{type:"string"},leitung_vor_ort:{type:"string"},equipment:{type:"string",description:"Gerät, Baujahr, Zustand"},
+        systeme:{type:"string"},hinweis:{type:"string",description:"ein Satz"}
+      }}},
+      einrichtung:{type:"object",properties:{
+        good_to_know_praktisch:{type:"string"},good_to_know_beziehung:{type:"string"},staerken:{type:"string"},risiken:{type:"string"},
+        naechster_besuch:{type:"string",description:"JJJJ-MM-TT wenn vereinbart"}
+      }},
+      todos:{type:"array",description:"Persönliche Aufgaben des Erfassers (mit X sprechen, Y nachsehen)",items:{type:"object",required:["text"],properties:{
+        text:{type:"string"},faellig:{type:"string",description:"JJJJ-MM-TT oder leer"},owner:{type:"string"},bezug_dl:{type:"string"}
+      }}},
+      rueckfragen:{type:"array",items:{type:"string"},description:"Was unklar blieb (Gewerk nicht eindeutig, Zahl ohne Einheit, Name ohne Rolle)"}
+    },
+    required:["besuch","ansprechpartner","prios","prio_updates","rote_linien","messwerte","leistung","einrichtung","todos","rueckfragen"]
+  }
+};
+
+function systemPrompt(hausId, hausName, datum){
+  return `Du strukturierst Sprachnotizen der Geschäftsbereichsleitung Service & Versorgung der SSG (Caritas Altenhilfe) nach Hausbesuchen. Besuch: ${hausId} ${hausName}, Datum ${datum}.
+Gewerke: ${Object.entries(DL).map(([k,v])=>k+" = "+v).join("; ")}.
+Kennzahlen (ID, Name, Gewerk): ${KPI.map(k=>k.join(" ")).join("; ")}.
+Regeln: Nur aufnehmen, was im Text steht; keine Annahmen, keine Vervollständigung. Jede Zahl braucht eine passende Kennzahl, sonst gehört sie in rueckfragen. Relative Zeitangaben auf das Besuchsdatum beziehen. Personen nur mit dienstlicher Rolle; keine Bewohnerinnen oder Bewohner, keine Gesundheitsangaben über Personen. Vorname allein ohne Rolle: bei 'mit X sprechen' ist X Owner oder Todo-Bezug, kein Ansprechpartner. Text in deutscher Sprache, kurz, Faktenstil.`;
+}
+
+// ---------------------------------------------------------------
+// State und Helfer
+// ---------------------------------------------------------------
+const $ = id => document.getElementById(id);
+const LS = { key:"ssg_api_key", model:"ssg_model", erf:"ssg_erfasser", haeuser:"ssg_haeuser", draft:"ssg_draft" };
+let delta = null;
+
+function haeuser(){
+  return (localStorage.getItem(LS.haeuser) || HAEUSER_DEFAULT).split("\n").map(l=>l.trim()).filter(Boolean)
+    .map(l=>{ const [id,...n]=l.split(";"); return {id:id.trim(), name:(n.join(";")||"").trim()}; });
+}
+function fillHaeuser(){
+  const sel=$("haus"); const cur=sel.value; sel.innerHTML="";
+  for(const h of haeuser()){ const o=document.createElement("option"); o.value=h.id; o.textContent=h.id+" "+h.name; sel.appendChild(o); }
+  if(cur) sel.value=cur;
+}
+function showStatus(el, msg, kind){ el.textContent=msg; el.className="status show "+kind; }
+function hideStatus(el){ el.className="status"; }
+function today(){ const d=new Date(); return d.toISOString().slice(0,10); }
+
+function loadSettings(){
+  $("apiKey").value = localStorage.getItem(LS.key)||"";
+  $("model").value = localStorage.getItem(LS.model)||"claude-sonnet-5-5";
+  $("erfasser").value = localStorage.getItem(LS.erf)||"MM";
+  $("haeuser").value = localStorage.getItem(LS.haeuser)||HAEUSER_DEFAULT;
+}
+function saveSettings(){
+  localStorage.setItem(LS.key, $("apiKey").value.trim());
+  localStorage.setItem(LS.model, $("model").value);
+  localStorage.setItem(LS.erf, $("erfasser").value.trim()||"MM");
+  localStorage.setItem(LS.haeuser, $("haeuser").value.trim()||HAEUSER_DEFAULT);
+  fillHaeuser(); $("settings").classList.add("hidden");
+  showStatus($("status"),"Einstellungen gespeichert.","ok");
+}
+function saveDraft(){ try{ localStorage.setItem(LS.draft, JSON.stringify({haus:$("haus").value,datum:$("datum").value,typ:$("typ").value,text:$("text").value})); }catch(e){} }
+function loadDraft(){ try{ const d=JSON.parse(localStorage.getItem(LS.draft)||"null"); if(d){ $("haus").value=d.haus||""; $("datum").value=d.datum||today(); $("typ").value=d.typ||"Einzel"; $("text").value=d.text||""; } }catch(e){} }
+
+// ---------------------------------------------------------------
+// Spracherkennung (Web Speech API; auf Android Chrome vorhanden)
+// ---------------------------------------------------------------
+let rec=null, recOn=false, baseText="";
+function initMic(){
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if(!SR){ $("btnMic").disabled=true; showStatus($("micStatus"),"Keine Spracherkennung im Browser. Mikrofon-Taste der Tastatur im Textfeld nutzen.","warn"); return; }
+  rec = new SR(); rec.lang="de-DE"; rec.continuous=true; rec.interimResults=true;
+  rec.onresult = ev => {
+    let fin="", interim="";
+    for(let i=0;i<ev.results.length;i++){ const r=ev.results[i]; if(r.isFinal) fin+=r[0].transcript+" "; else interim+=r[0].transcript; }
+    $("text").value = (baseText+" "+fin+interim).replace(/\s+/g," ").trim(); saveDraft();
+  };
+  rec.onerror = ev => { showStatus($("micStatus"),"Mikrofon: "+ev.error+". Alternativ Tastatur-Diktat nutzen.","warn"); stopMic(); };
+  rec.onend = () => { if(recOn){ try{ rec.start(); }catch(e){ stopMic(); } } };
+}
+function startMic(){ if(!rec) return; baseText=$("text").value; recOn=true; $("btnMic").textContent="■ Stopp"; $("btnMic").classList.add("rec"); showStatus($("micStatus"),"Aufnahme läuft, frei sprechen.","ok"); try{ rec.start(); }catch(e){} }
+function stopMic(){ recOn=false; if(rec){ try{ rec.stop(); }catch(e){} } $("btnMic").textContent="🎤 Aufnahme"; $("btnMic").classList.remove("rec"); hideStatus($("micStatus")); }
+
+// ---------------------------------------------------------------
+// API-Aufruf
+// ---------------------------------------------------------------
+async function strukturieren(){
+  const key=localStorage.getItem(LS.key); if(!key){ $("settings").classList.remove("hidden"); showStatus($("status"),"Bitte zuerst den API-Key eintragen.","warn"); return; }
+  const text=$("text").value.trim(); if(text.length<10){ showStatus($("status"),"Freitext ist leer.","warn"); return; }
+  const hausId=$("haus").value, hausName=(haeuser().find(h=>h.id===hausId)||{}).name||"", datum=$("datum").value||today();
+  stopMic(); $("btnRun").disabled=true; showStatus($("status"),"Wird strukturiert…","ok");
+  try{
+    const body={ model:localStorage.getItem(LS.model)||"claude-sonnet-5-5", max_tokens:4096,
+      system:systemPrompt(hausId,hausName,datum), tools:[TOOL], tool_choice:{type:"tool",name:"besuchsdelta"},
+      messages:[{role:"user",content:"Sprachnotiz:\n\n"+text}] };
+    const r=await fetch("https://api.anthropic.com/v1/messages",{ method:"POST",
+      headers:{ "content-type":"application/json","x-api-key":key,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true" },
+      body:JSON.stringify(body) });
+    if(!r.ok){ const t=await r.text(); throw new Error("API "+r.status+": "+t.slice(0,300)); }
+    const j=await r.json();
+    const tu=(j.content||[]).find(c=>c.type==="tool_use"); if(!tu) throw new Error("Keine strukturierte Antwort erhalten.");
+    delta = { schema:"ssg-besuchsdelta-v1", haus_id:hausId, haus_name:hausName, datum, typ:$("typ").value,
+      erfasser:localStorage.getItem(LS.erf)||"MM", erstellt:new Date().toISOString(), modell:body.model, freitext:text, ...tu.input };
+    renderDelta(); showStatus($("status"),"Vorschlag erstellt. Bitte prüfen.","ok");
+  }catch(e){ showStatus($("status"),"Fehler: "+e.message,"err"); }
+  finally{ $("btnRun").disabled=false; }
+}
+
+// ---------------------------------------------------------------
+// Darstellung der erkannten Punkte, editierbar, mit An/Aus je Punkt
+// ---------------------------------------------------------------
+const FIELDS = {
+  ansprechpartner:[["seite","select",["Kunde","SSG"]],["rolle","text"],["name","text"],["seit","text"],["hinweis_beruflich","text"],["ersetzt_vorgaenger","check"]],
+  prios:[["dl_id","select",["Haus","DL1","DL2","DL3","DL4","DL5","DL6"]],["thema","text"],["prio","select",[1,2,3]],["frist","date"],["owner","text"],["status","select",["offen","laeuft","geplant"]],["kommentar","text"]],
+  prio_updates:[["thema_suche","text"],["status","select",["offen","laeuft","geplant","erledigt"]],["kommentar","text"]],
+  rote_linien:[["dl_id","select",["DL1","DL2","DL3","DL4","DL5","DL6"]],["art","select",["Prueffrist","Hygiene","Auflage","Vakanz"]],["seit","text"],["frist","date"],["status","text"],["kommentar","text"]],
+  messwerte:[["kpi_id","select",KPI.map(k=>k[0])],["dl_id","text"],["monat","text"],["wert","number"],["kommentar","text"]],
+  leistung:[["dl_id","select",["DL1","DL2","DL3","DL4","DL5","DL6"]],["status","select",["","eigen","teilweise","fremd","nicht angeboten"]],["partner","text"],["leitung_vor_ort","text"],["equipment","text"],["systeme","text"],["hinweis","text"]],
+  todos:[["text","text"],["faellig","date"],["owner","text"],["bezug_dl","text"]]
+};
+const TITLES = { ansprechpartner:"Ansprechpartner", prios:"Prios / Maßnahmen", prio_updates:"Bestehende Prios ändern", rote_linien:"Rote Linien", messwerte:"Messwerte", leistung:"Gewerk-Beobachtungen", todos:"Meine To-dos" };
+
+function inputFor(kind, opts, val, onchange){
+  let el;
+  if(kind==="select"){ el=document.createElement("select"); for(const o of opts){ const op=document.createElement("option"); op.value=o; op.textContent=o===""?"(leer)":o; el.appendChild(op);} el.value=val==null?"":String(val); }
+  else if(kind==="check"){ el=document.createElement("input"); el.type="checkbox"; el.checked=!!val; el.style.width="auto"; }
+  else { el=document.createElement("input"); el.type=kind; el.value=val==null?"":val; }
+  el.addEventListener("input", ()=>onchange(kind==="check"?el.checked:(kind==="number"?(el.value===""?null:Number(el.value)):(kind==="select"&&opts.every(o=>typeof o==="number")?Number(el.value):el.value))));
+  return el;
+}
+function labelFor(key){ return {dl_id:"Gewerk",kpi_id:"Kennzahl",thema:"Thema",prio:"Prio",frist:"Frist",owner:"Owner",status:"Status",kommentar:"Kommentar",seite:"Seite",rolle:"Rolle",name:"Name",seit:"seit",hinweis_beruflich:"Hinweis (dienstlich)",ersetzt_vorgaenger:"neu in Rolle",thema_suche:"Suchbegriff",art:"Art",monat:"Monat",wert:"Wert",partner:"Partner",leitung_vor_ort:"Leitung vor Ort",equipment:"Equipment",systeme:"Systeme",hinweis:"Hinweis",text:"Aufgabe",faellig:"fällig",bezug_dl:"Bezug Gewerk"}[key]||key; }
+
+function renderDelta(){
+  const root=$("cards"); root.innerHTML="";
+  $("result").classList.remove("hidden"); $("btnExport").classList.remove("hidden");
+  // Rückfragen
+  const rq=$("rueckfragen"); rq.innerHTML="";
+  if((delta.rueckfragen||[]).length){ const d=document.createElement("div"); d.className="status show warn"; d.innerHTML="<b>Rückfragen:</b><br>"+delta.rueckfragen.map(x=>"• "+esc(x)).join("<br>"); rq.appendChild(d); }
+  // Besuch
+  const b=delta.besuch||{}; const bc=document.createElement("div"); bc.className="item";
+  bc.innerHTML="<div class='top'><b>Besuch "+esc(delta.haus_id)+" · "+esc(delta.datum)+"</b><span class='tag'>"+esc(delta.typ)+"</span></div>";
+  const g=document.createElement("div"); g.className="grid3";
+  for(const dl of ["DL1","DL2","DL3","DL4","DL5"]){ const w=document.createElement("div"); const l=document.createElement("label"); l.textContent="Eindruck "+dl; w.appendChild(l); w.appendChild(inputFor("select",["",1,2,3,4,5],(b.eindruck||{})[dl]??"",v=>{ b.eindruck=b.eindruck||{}; b.eindruck[dl]=v===""?null:Number(v); sync(); })); g.appendChild(w); }
+  bc.appendChild(g);
+  for(const [k,lab] of [["satz_je_gewerk","Satz je Gewerk"],["naechster_schritt","Nächster Schritt"]]){ const l=document.createElement("label"); l.textContent=lab; bc.appendChild(l); const t=document.createElement("textarea"); t.value=b[k]||""; t.addEventListener("input",()=>{ b[k]=t.value; sync(); }); bc.appendChild(t); }
+  delta.besuch=b; root.appendChild(bc);
+  // Einrichtung
+  const e=delta.einrichtung||{}; const ec=document.createElement("div"); ec.className="item"; ec.innerHTML="<div class='top'><b>Einrichtung (Good to know, Stärken, Risiken)</b></div>";
+  for(const [k,lab] of [["good_to_know_praktisch","Praktisches"],["good_to_know_beziehung","Beziehung"],["staerken","Stärken"],["risiken","Risiken"],["naechster_besuch","Nächster Besuch (JJJJ-MM-TT)"]]){ const l=document.createElement("label"); l.textContent=lab; ec.appendChild(l); const t=document.createElement(k==="naechster_besuch"?"input":"textarea"); t.value=e[k]||""; t.addEventListener("input",()=>{ e[k]=t.value; sync(); }); ec.appendChild(t); }
+  delta.einrichtung=e; root.appendChild(ec);
+  // Listen
+  for(const sec of Object.keys(FIELDS)){
+    const arr=delta[sec]=delta[sec]||[]; const h=document.createElement("h2"); h.textContent=TITLES[sec]+" ("+arr.length+")"; h.style.marginTop="14px"; root.appendChild(h);
+    if(!arr.length){ const p=document.createElement("div"); p.className="empty"; p.textContent="nichts erkannt"; root.appendChild(p); }
+    arr.forEach((it,idx)=>{
+      if(it._aus===undefined) it._aus=false;
+      const d=document.createElement("div"); d.className="item"+(it._aus?" off":"");
+      const top=document.createElement("div"); top.className="top";
+      const title=document.createElement("b"); title.textContent=(it.thema||it.name||it.text||it.thema_suche||it.art||it.kpi_id||it.dl_id||"Eintrag");
+      const btn=document.createElement("button"); btn.textContent=it._aus?"Übernehmen":"Verwerfen"; btn.onclick=()=>{ it._aus=!it._aus; renderDelta(); };
+      top.appendChild(title); top.appendChild(btn); d.appendChild(top);
+      const grid=document.createElement("div"); grid.className="grid2";
+      for(const [key,kind,opts] of FIELDS[sec]){ const w=document.createElement("div"); const l=document.createElement("label"); l.textContent=labelFor(key); w.appendChild(l); w.appendChild(inputFor(kind,opts||[],it[key],v=>{ it[key]=v; sync(); })); grid.appendChild(w); }
+      d.appendChild(grid); root.appendChild(d);
+    });
+  }
+  sync();
+}
+function esc(s){ return String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
+function exportObj(){
+  const out=JSON.parse(JSON.stringify(delta));
+  for(const sec of Object.keys(FIELDS)){ out[sec]=(out[sec]||[]).filter(x=>!x._aus).map(x=>{ delete x._aus; return x; }); }
+  return out;
+}
+function sync(){ $("json").textContent=JSON.stringify(exportObj(),null,2); }
+
+// ---------------------------------------------------------------
+// Export: Datei teilen (Android: nach Drive/OneDrive) oder herunterladen
+// ---------------------------------------------------------------
+async function exportDelta(){
+  const out=exportObj(); const name=`delta_${out.haus_id}_${out.datum}_${Date.now().toString(36)}.json`;
+  const blob=new Blob([JSON.stringify(out,null,2)],{type:"application/json"});
+  const file=new File([blob],name,{type:"application/json"});
+  try{
+    if(navigator.canShare && navigator.canShare({files:[file]})){ await navigator.share({files:[file],title:name}); showStatus($("status"),"Delta geteilt: "+name,"ok"); return; }
+  }catch(e){ if(e.name==="AbortError") return; }
+  const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download=name; document.body.appendChild(a); a.click(); a.remove();
+  showStatus($("status"),"Delta heruntergeladen: "+name,"ok");
+}
+
+// ---------------------------------------------------------------
+// Start
+// ---------------------------------------------------------------
+window.addEventListener("DOMContentLoaded",()=>{
+  loadSettings(); fillHaeuser(); $("datum").value=today(); loadDraft(); initMic();
+  $("btnSettings").onclick=()=>$("settings").classList.toggle("hidden");
+  $("btnSaveSettings").onclick=saveSettings;
+  $("btnMic").onclick=()=>recOn?stopMic():startMic();
+  $("btnClear").onclick=()=>{ $("text").value=""; saveDraft(); };
+  $("btnRun").onclick=strukturieren;
+  $("btnExport").onclick=exportDelta;
+  for(const id of ["haus","datum","typ","text"]) $(id).addEventListener("input",saveDraft);
+  if(!localStorage.getItem(LS.key)) $("settings").classList.remove("hidden");
+});
+// Für Tests: Delta von außen setzen
+window.__setDelta = d => { delta=d; renderDelta(); };
+window.__exportObj = exportObj;
+</script>
+</body>
+</html>
