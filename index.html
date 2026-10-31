@@ -232,7 +232,8 @@ function systemPrompt(hausId, hausName, datum){
   return `Du strukturierst Sprachnotizen der Geschäftsbereichsleitung Service & Versorgung der SSG (Caritas Altenhilfe) nach Hausbesuchen. Besuch: ${hausId} ${hausName}, Datum ${datum}.
 Gewerke: ${Object.entries(DL).map(([k,v])=>k+" = "+v).join("; ")}.
 Kennzahlen (ID, Name, Gewerk): ${KPI.map(k=>k.join(" ")).join("; ")}.
-Regeln: Nur aufnehmen, was im Text steht; keine Annahmen, keine Vervollständigung. Jede Zahl braucht eine passende Kennzahl, sonst gehört sie in rueckfragen. Relative Zeitangaben auf das Besuchsdatum beziehen. Personen nur mit dienstlicher Rolle; keine Bewohnerinnen oder Bewohner, keine Gesundheitsangaben über Personen. Vorname allein ohne Rolle: bei 'mit X sprechen' ist X Owner oder Todo-Bezug, kein Ansprechpartner. Text in deutscher Sprache, kurz, Faktenstil.`;
+Regeln: Nur aufnehmen, was im Text steht; keine Annahmen, keine Vervollständigung. Jede Zahl braucht eine passende Kennzahl, sonst gehört sie in rueckfragen. Relative Zeitangaben auf das Besuchsdatum beziehen. Personen nur mit dienstlicher Rolle; keine Bewohnerinnen oder Bewohner, keine Gesundheitsangaben über Personen. Vorname allein ohne Rolle: bei 'mit X sprechen' ist X Owner oder Todo-Bezug, kein Ansprechpartner. Text in deutscher Sprache, kurz, Faktenstil.
+Antworte ausschließlich durch einen Aufruf des Tools besuchsdelta, ohne Text davor oder danach.`;
 }
 
 // ---------------------------------------------------------------
@@ -301,16 +302,27 @@ async function strukturieren(){
   stopMic(); $("btnRun").disabled=true; showStatus($("status"),"Wird strukturiert…","ok");
   try{
     const body={ model:localStorage.getItem(LS.model)||"claude-sonnet-5-5", max_tokens:4096,
-      system:systemPrompt(hausId,hausName,datum), tools:[TOOL], tool_choice:{type:"tool",name:"besuchsdelta"},
+      system:systemPrompt(hausId,hausName,datum), tools:[TOOL], tool_choice:{type:"auto"},
       messages:[{role:"user",content:"Sprachnotiz:\n\n"+text}] };
     const r=await fetch("https://api.anthropic.com/v1/messages",{ method:"POST",
       headers:{ "content-type":"application/json","x-api-key":key,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true" },
       body:JSON.stringify(body) });
     if(!r.ok){ const t=await r.text(); throw new Error("API "+r.status+": "+t.slice(0,300)); }
     const j=await r.json();
-    const tu=(j.content||[]).find(c=>c.type==="tool_use"); if(!tu) throw new Error("Keine strukturierte Antwort erhalten.");
+    let input=null;
+    const tu=(j.content||[]).find(c=>c.type==="tool_use");
+    if(tu){ input=tu.input; }
+    else {
+      // Fallback: Modell hat Text geliefert; JSON-Objekt daraus ziehen
+      const txt=(j.content||[]).filter(c=>c.type==="text").map(c=>c.text).join("\n");
+      const m=txt.match(/\{[\s\S]*\}/);
+      if(m){ try{ input=JSON.parse(m[0]); }catch(e){} }
+      if(!input) throw new Error("Keine strukturierte Antwort erhalten. Antwort: "+txt.slice(0,200));
+    }
+    for(const k of ["ansprechpartner","prios","prio_updates","rote_linien","messwerte","leistung","todos","rueckfragen"]) if(!Array.isArray(input[k])) input[k]=[];
+    input.besuch=input.besuch||{}; input.einrichtung=input.einrichtung||{};
     delta = { schema:"ssg-besuchsdelta-v1", haus_id:hausId, haus_name:hausName, datum, typ:$("typ").value,
-      erfasser:localStorage.getItem(LS.erf)||"MM", erstellt:new Date().toISOString(), modell:body.model, freitext:text, ...tu.input };
+      erfasser:localStorage.getItem(LS.erf)||"MM", erstellt:new Date().toISOString(), modell:body.model, freitext:text, ...input };
     renderDelta(); showStatus($("status"),"Vorschlag erstellt. Bitte prüfen.","ok");
   }catch(e){ showStatus($("status"),"Fehler: "+e.message,"err"); }
   finally{ $("btnRun").disabled=false; }
