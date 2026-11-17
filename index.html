@@ -4,427 +4,716 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#1f3a5f">
-<title>SSG Sprachnotiz</title>
+<meta name="mobile-web-app-capable" content="yes">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>SSG Cockpit</title>
 <style>
-  :root { --b:#1f3a5f; --b2:#2d5a8e; --g:#e9eef3; --t:#1a1a1a; --m:#6b7280; --ok:#1a7f4b; --warn:#b45309; --err:#b91c1c; --card:#fff; }
-  * { box-sizing:border-box; }
-  body { margin:0; font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; background:var(--g); color:var(--t); font-size:16px; }
-  header { background:var(--b); color:#fff; padding:14px 16px; display:flex; justify-content:space-between; align-items:center; position:sticky; top:0; z-index:5; }
-  header h1 { font-size:18px; margin:0; font-weight:600; }
-  header button { background:transparent; border:1px solid rgba(255,255,255,.5); color:#fff; border-radius:8px; padding:6px 10px; font-size:14px; }
-  main { padding:12px; max-width:720px; margin:0 auto; padding-bottom:90px; }
-  .card { background:var(--card); border-radius:12px; padding:12px; margin-bottom:12px; box-shadow:0 1px 2px rgba(0,0,0,.06); }
-  .card h2 { font-size:15px; margin:0 0 8px; color:var(--b); font-weight:600; }
-  label { display:block; font-size:13px; color:var(--m); margin:6px 0 3px; }
-  input, select, textarea { width:100%; font-size:16px; padding:10px; border:1px solid #cfd6de; border-radius:8px; background:#fff; color:var(--t); }
-  textarea { min-height:160px; resize:vertical; line-height:1.4; }
-  .row { display:flex; gap:8px; }
-  .row > * { flex:1; }
-  .btn { background:var(--b2); color:#fff; border:0; border-radius:10px; padding:12px 14px; font-size:16px; font-weight:600; width:100%; }
-  .btn.sec { background:#fff; color:var(--b2); border:1px solid var(--b2); }
-  .btn.rec { background:var(--err); }
-  .btn:disabled { opacity:.5; }
-  .bar { position:fixed; bottom:0; left:0; right:0; background:#fff; border-top:1px solid #d7dde4; padding:10px 12px; display:flex; gap:8px; z-index:5; }
-  .muted { color:var(--m); font-size:13px; }
-  .item { border:1px solid #e3e8ee; border-radius:10px; padding:10px; margin:8px 0; }
-  .item.off { opacity:.45; }
-  .item .top { display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:6px; }
-  .item .top b { font-size:14px; }
-  .item .top button { background:#fff; border:1px solid #cfd6de; border-radius:6px; padding:4px 8px; font-size:13px; }
-  .item input, .item select, .item textarea { font-size:14px; padding:7px; }
-  .item textarea { min-height:52px; }
-  .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:6px; }
-  .grid3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:6px; }
-  .tag { display:inline-block; background:var(--g); border-radius:6px; padding:2px 7px; font-size:12px; color:var(--m); }
-  .status { font-size:14px; padding:8px 10px; border-radius:8px; margin:8px 0; display:none; }
-  .status.show { display:block; }
-  .status.ok { background:#e7f5ee; color:var(--ok); }
-  .status.warn { background:#fef3e2; color:var(--warn); }
-  .status.err { background:#fde8e8; color:var(--err); }
-  .hidden { display:none !important; }
-  details summary { cursor:pointer; color:var(--b2); font-size:14px; }
-  pre { background:#f5f7f9; padding:8px; border-radius:8px; overflow:auto; font-size:12px; }
-  .empty { color:var(--m); font-size:14px; padding:6px 0; }
+ :root { --b:#1f3a5f; --b2:#2d5a8e; --bg:#eef2f6; --t:#18212b; --m:#667085; --line:#dde3ea; --card:#fff;
+   --g:#2e7d32; --y:#b8860b; --r:#c62828; --gbg:#dcedc8; --ybg:#fff3c4; --rbg:#ffcdd2; --xbg:#eceff3; --neu:#0f766e; --neubg:#e6f6f4; }
+ * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+ html, body { height:100%; }
+ body { margin:0; font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; background:var(--bg); color:var(--t); font-size:16px; line-height:1.35; overscroll-behavior-y:none; }
+ header { background:var(--b); color:#fff; padding:calc(10px + env(safe-area-inset-top)) 14px 10px; display:flex; align-items:center; gap:10px; position:sticky; top:0; z-index:10; }
+ header h1 { font-size:18px; margin:0; font-weight:650; flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+ header .ib { background:transparent; border:0; color:#fff; padding:6px; border-radius:10px; display:flex; }
+ header .ib:active { background:rgba(255,255,255,.15); }
+ #btnBack { display:none; }
+ .demo { font-size:11px; border:1px solid rgba(255,255,255,.55); border-radius:20px; padding:2px 8px; white-space:nowrap; }
+ main { padding:12px 12px calc(96px + env(safe-area-inset-bottom)); max-width:720px; margin:0 auto; }
+ .view { display:none; }
+ .view.on { display:block; animation:in .22s ease-out; }
+ @keyframes in { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:none; } }
+ .card { background:var(--card); border-radius:16px; padding:14px; margin-bottom:12px; box-shadow:0 1px 3px rgba(16,24,40,.07); }
+ .card h2 { font-size:13px; margin:0 0 10px; color:var(--b2); font-weight:700; letter-spacing:.05em; text-transform:uppercase; display:flex; justify-content:space-between; align-items:center; gap:8px; }
+ .muted { color:var(--m); font-size:13px; }
+ .small { font-size:13px; }
+ .row { display:flex; gap:10px; align-items:center; }
+ .row > .grow { flex:1; min-width:0; }
+ .hero { display:flex; gap:16px; align-items:center; }
+ .ring { position:relative; width:112px; height:112px; flex:none; }
+ .ring svg { width:100%; height:100%; transform:rotate(-90deg); }
+ .ring .val { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; font-weight:750; font-size:28px; line-height:1; }
+ .ring .val small { font-size:11px; font-weight:500; color:var(--m); margin-top:4px; }
+ .ring.s { width:76px; height:76px; } .ring.s .val { font-size:20px; }
+ .bar { height:8px; background:var(--xbg); border-radius:6px; overflow:hidden; }
+ .bar i { display:block; height:100%; border-radius:6px; transition:width .5s ease; }
+ .dim { display:grid; grid-template-columns:88px 1fr 30px; gap:8px; align-items:center; font-size:13px; margin:5px 0; }
+ .c-g { color:var(--g); } .c-y { color:var(--y); } .c-r { color:var(--r); } .c-x { color:var(--m); }
+ .b-g { background:var(--g); } .b-y { background:#f9a825; } .b-r { background:var(--r); } .b-x { background:#b7bfc9; }
+ .t-g { background:var(--gbg); color:#1b5e20; } .t-y { background:var(--ybg); color:#7a5c00; } .t-r { background:var(--rbg); color:#8e1b1b; } .t-x { background:var(--xbg); color:var(--m); }
+ .stats { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-bottom:12px; }
+ .stat { background:var(--card); border-radius:14px; padding:12px 10px; text-align:center; box-shadow:0 1px 3px rgba(16,24,40,.07); }
+ .stat b { display:block; font-size:22px; line-height:1.1; }
+ .stat span { font-size:12px; color:var(--m); }
+ .cta { width:100%; border:0; border-radius:16px; background:linear-gradient(135deg,#2d5a8e,#1f3a5f); color:#fff; padding:16px; font-size:17px; font-weight:650; display:flex; align-items:center; justify-content:center; gap:10px; margin-bottom:12px; box-shadow:0 6px 16px rgba(31,58,95,.28); }
+ .cta:active { transform:scale(.985); }
+ .li { display:flex; gap:10px; align-items:center; padding:10px 0; border-top:1px solid var(--line); }
+ .li:first-of-type { border-top:0; }
+ .li.tap:active { background:#f6f8fa; }
+ .li .grow { flex:1; min-width:0; }
+ .li .ttl { font-weight:600; font-size:15px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+ .li .sub { font-size:12.5px; color:var(--m); }
+ .sc { min-width:44px; text-align:center; border-radius:10px; padding:7px 4px; font-weight:750; font-size:16px; flex:none; }
+ .dots { display:flex; gap:3px; margin-top:4px; }
+ .dots i { width:16px; height:6px; border-radius:3px; display:block; }
+ .chev { color:#a3acb8; flex:none; }
+ .tag { display:inline-block; border-radius:20px; padding:2px 9px; font-size:12px; background:var(--xbg); color:var(--m); white-space:nowrap; }
+ .tag.rl { background:var(--rbg); color:#8e1b1b; font-weight:650; }
+ .tag.neu { background:var(--neubg); color:var(--neu); font-weight:650; }
+ .tag.ok { background:var(--gbg); color:#1b5e20; }
+ .neu-row { background:var(--neubg); border-left:4px solid var(--neu); border-radius:8px; padding-left:8px !important; margin:4px 0; border-top:0 !important; animation:pop .6s ease-out; }
+ @keyframes pop { from { background:#b9ece5; } to { background:var(--neubg); } }
+ .alt { text-decoration:line-through; color:var(--m); }
+ .kv { display:grid; grid-template-columns:minmax(0,5fr) minmax(0,6fr); gap:4px 12px; font-size:14px; }
+ .kv > div:nth-child(odd) { color:var(--m); }
+ .kv > div:nth-child(even) { text-align:right; font-weight:600; }
+ .tiles { display:grid; grid-template-columns:repeat(2,1fr); gap:10px; }
+ .tile { border-radius:14px; padding:12px; background:var(--card); box-shadow:0 1px 3px rgba(16,24,40,.07); }
+ .tile b { font-size:24px; display:block; line-height:1.1; }
+ .tile span { font-size:13px; color:var(--m); }
+ details.dl { border-top:1px solid var(--line); padding:10px 0; }
+ details.dl:first-of-type { border-top:0; }
+ details.dl summary { list-style:none; display:flex; align-items:center; gap:10px; cursor:pointer; }
+ details.dl summary::-webkit-details-marker { display:none; }
+ details.dl[open] summary .chev { transform:rotate(90deg); }
+ details.dl .body { padding:10px 0 2px; font-size:14px; }
+ .steps { counter-reset:s; }
+ .step { display:flex; gap:12px; padding:10px 0; position:relative; }
+ .step::before { counter-increment:s; content:counter(s); width:30px; height:30px; border-radius:50%; background:var(--b2); color:#fff; display:flex; align-items:center; justify-content:center; font-weight:700; flex:none; z-index:1; }
+ .step:not(:last-child)::after { content:""; position:absolute; left:14px; top:40px; bottom:-10px; width:2px; background:var(--line); }
+ .step b { display:block; }
+ nav { position:fixed; left:0; right:0; bottom:0; background:#fff; border-top:1px solid var(--line); display:grid; grid-template-columns:repeat(5,1fr); padding:6px 4px calc(6px + env(safe-area-inset-bottom)); z-index:10; }
+ nav button { background:transparent; border:0; color:var(--m); font-size:11px; display:flex; flex-direction:column; align-items:center; gap:2px; padding:4px 0; }
+ nav button.on { color:var(--b2); font-weight:650; }
+ nav .fab { width:56px; height:56px; border-radius:50%; background:linear-gradient(135deg,#2d5a8e,#1f3a5f); color:#fff; margin:-26px auto 0; justify-content:center; box-shadow:0 6px 14px rgba(31,58,95,.35); }
+ nav .fab:active { transform:scale(.95); }
+ label { display:block; font-size:13px; color:var(--m); margin:8px 0 3px; }
+ input, select, textarea { width:100%; font-size:16px; padding:10px; border:1px solid #cfd6de; border-radius:10px; background:#fff; color:var(--t); font-family:inherit; }
+ textarea { min-height:150px; resize:vertical; line-height:1.4; }
+ .btn { background:var(--b2); color:#fff; border:0; border-radius:12px; padding:12px 14px; font-size:16px; font-weight:650; width:100%; }
+ .btn.sec { background:#fff; color:var(--b2); border:1px solid var(--b2); }
+ .btn.rec { background:var(--r); border-color:var(--r); color:#fff; animation:pulse 1.2s infinite; }
+ .btn.warn { background:#fff; color:var(--r); border:1px solid var(--r); }
+ .btn:disabled { opacity:.5; }
+ .btn:active { transform:scale(.985); }
+ @keyframes pulse { 50% { opacity:.75; } }
+ .status { font-size:14px; padding:9px 11px; border-radius:10px; margin:8px 0; display:none; }
+ .status.show { display:block; }
+ .status.ok { background:#e7f5ee; color:#1a7f4b; } .status.warn { background:#fef3e2; color:#b45309; } .status.err { background:#fde8e8; color:#b91c1c; }
+ .item { border:1px solid #e3e8ee; border-radius:12px; padding:10px; margin:8px 0; }
+ .item.off { opacity:.45; }
+ .item .top { display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:6px; }
+ .item .top b { font-size:14px; }
+ .item .top button { background:#fff; border:1px solid #cfd6de; border-radius:8px; padding:4px 8px; font-size:13px; }
+ .item input, .item select, .item textarea { font-size:14px; padding:7px; }
+ .item textarea { min-height:52px; }
+ .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:6px; }
+ .grid3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:6px; }
+ .sech { font-size:14px; margin:14px 0 2px; color:var(--b); font-weight:650; }
+ .empty { color:var(--m); font-size:14px; padding:4px 0; }
+ pre { background:#f5f7f9; padding:8px; border-radius:8px; overflow:auto; font-size:12px; }
+ .hidden { display:none !important; }
+ #toast { position:fixed; left:50%; bottom:calc(104px + env(safe-area-inset-bottom)); transform:translate(-50%,20px); background:#18212b; color:#fff; padding:10px 16px; border-radius:24px; font-size:14px; opacity:0; transition:all .25s; pointer-events:none; z-index:20; max-width:90%; text-align:center; }
+ #toast.show { opacity:1; transform:translate(-50%,0); }
 </style>
 </head>
 <body>
 <header>
-  <h1>SSG Sprachnotiz</h1>
-  <button id="btnSettings">Einstellungen</button>
+ <button class="ib" id="btnBack" aria-label="Zurück"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button>
+ <h1 id="title">SSG Cockpit</h1>
+ <span class="demo">Beispieldaten</span>
+ <button class="ib" id="btnSettings" aria-label="Einstellungen"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3h.1a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8v.1a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
 </header>
 
 <main>
-  <!-- Einstellungen -->
-  <section class="card hidden" id="settings">
-    <h2>Einstellungen (bleiben nur auf diesem Gerät)</h2>
-    <label>Anthropic API-Key</label>
-    <input id="apiKey" type="password" placeholder="sk-ant-…" autocomplete="off">
-    <label>Modell</label>
-    <select id="model">
-      <option value="claude-sonnet-5-5">claude-sonnet-5-5 (Standard)</option>
-      <option value="claude-haiku-5-5">claude-haiku-5-5 (schneller, günstiger)</option>
-      <option value="claude-opus-5-5">claude-opus-5-5</option>
-    </select>
-    <label>Erfasser-Kürzel</label>
-    <input id="erfasser" value="MM">
-    <label>Häuser (Haus-ID;Name je Zeile, aus Blatt Einrichtung)</label>
-    <textarea id="haeuser" style="min-height:120px;font-size:13px"></textarea>
-    <p class="muted">Der Key wird im lokalen Speicher des Browsers abgelegt und nur an api.anthropic.com gesendet. Keine Bewohnerdaten diktieren, nur Haus, Gewerk, Ansprechpartner (dienstlich), Zahlen und Maßnahmen.</p>
-    <button class="btn" id="btnSaveSettings">Speichern</button>
-  </section>
+ <section class="view" id="v-home"></section>
+ <section class="view" id="v-haeuser"></section>
+ <section class="view" id="v-haus"></section>
+ <section class="view" id="v-gewerke"></section>
+ <section class="view" id="v-gewerk"></section>
+ <section class="view" id="v-daten"></section>
 
-  <!-- Erfassung -->
-  <section class="card" id="capture">
-    <h2>1. Besuch</h2>
-    <div class="row">
-      <div><label>Haus</label><select id="haus"></select></div>
-    </div>
-    <div class="row">
-      <div><label>Datum</label><input id="datum" type="date"></div>
-      <div><label>Typ</label><select id="typ"><option>Einzel</option><option>Tour</option><option>Fruehstart</option></select></div>
-    </div>
-    <label>Freitext (Mikrofon oder Tastatur-Diktat)</label>
-    <textarea id="text" placeholder="z. B.: War heute im Haus, Frau Meier ist neue Einrichtungsleitung seit Oktober. Spülmaschine in der Küche kaputt, muss mit Maiko sprechen, bis nächste Woche klären. Reinigung Flure okay, Eindruck 3. HACCP-Audit lag bei 87 Punkten."></textarea>
-    <div class="row" style="margin-top:8px">
-      <button class="btn sec" id="btnMic">🎤 Aufnahme</button>
-      <button class="btn sec" id="btnClear">Leeren</button>
-    </div>
-    <div class="status" id="micStatus"></div>
-  </section>
-
+ <!-- Sprachnotiz -->
+ <section class="view" id="v-notiz">
+  <div class="card">
+   <h2>1. Besuch</h2>
+   <label>Haus</label><select id="haus"></select>
+   <div class="grid2">
+    <div><label>Datum</label><input id="datum" type="date"></div>
+    <div><label>Typ</label><select id="typ"><option>Einzel</option><option>Tour</option><option>Fruehstart</option></select></div>
+   </div>
+   <label>Freitext (Mikrofon oder Tastatur-Diktat)</label>
+   <textarea id="text" placeholder="Frei sprechen: wer ist neu, was ist defekt, welche Zahlen wurden genannt, was ist zu tun."></textarea>
+   <div class="grid2" style="margin-top:8px">
+    <button class="btn sec" id="btnMic">Aufnahme</button>
+    <button class="btn sec" id="btnClear">Leeren</button>
+   </div>
+   <button class="btn sec" id="btnDemo" style="margin-top:8px">Beispieldiktat einsetzen</button>
+   <div class="status" id="micStatus"></div>
+   <button class="btn" id="btnRun" style="margin-top:10px">Strukturieren</button>
+  </div>
   <div class="status" id="status"></div>
+  <div class="card hidden" id="result">
+   <h2>2. Erkannte Punkte prüfen</h2>
+   <p class="muted" style="margin-top:0">Alles hier ist ein Vorschlag aus dem Freitext. Abwählen, was nicht stimmt; Felder sind änderbar. Erst „Übernehmen“ schreibt in den Steckbrief.</p>
+   <div id="rueckfragen"></div>
+   <div id="cards"></div>
+   <details><summary class="muted">Delta als JSON anzeigen</summary><pre id="json"></pre></details>
+   <button class="btn" id="btnApply" style="margin-top:12px">In Steckbrief übernehmen</button>
+   <button class="btn sec" id="btnExport" style="margin-top:8px">Als Datei exportieren</button>
+  </div>
+ </section>
 
-  <!-- Ergebnis -->
-  <section class="card hidden" id="result">
-    <h2>2. Erkannte Punkte prüfen</h2>
-    <p class="muted">Alles hier ist ein Vorschlag aus dem Freitext. Abwählen, was nicht stimmt; Felder sind editierbar. Erst „Delta exportieren" schreibt etwas.</p>
-    <div id="rueckfragen"></div>
-    <div id="cards"></div>
-    <details><summary>Delta-JSON anzeigen</summary><pre id="json"></pre></details>
-  </section>
+ <!-- Einstellungen -->
+ <section class="view" id="v-settings">
+  <div class="card">
+   <h2>Einstellungen (bleiben nur auf diesem Gerät)</h2>
+   <label>Anthropic API-Key</label>
+   <input id="apiKey" type="password" placeholder="sk-ant-…" autocomplete="off">
+   <label>Modell</label>
+   <select id="model">
+    <option value="claude-sonnet-5-5">claude-sonnet-5-5 (Standard)</option>
+    <option value="claude-haiku-5-5">claude-haiku-5-5 (schneller, günstiger)</option>
+    <option value="claude-opus-5-5">claude-opus-5-5</option>
+   </select>
+   <label>Erfasser-Kürzel</label>
+   <input id="erfasser" value="MM">
+   <label>Häuser (Haus-ID;Name je Zeile)</label>
+   <textarea id="haeuser" style="min-height:120px;font-size:13px"></textarea>
+   <p class="muted">Der Key liegt im lokalen Speicher des Browsers und wird nur an api.anthropic.com gesendet. Keine Bewohnerdaten diktieren, nur Haus, Gewerk, dienstliche Ansprechpartner, Zahlen und Maßnahmen.</p>
+   <button class="btn" id="btnSaveSettings">Speichern</button>
+  </div>
+  <div class="card">
+   <h2>Vorführung</h2>
+   <p class="muted" style="margin-top:0">Entfernt alle übernommenen Sprachnotizen und stellt den Ausgangszustand der Beispieldaten wieder her. API-Key und Einstellungen bleiben erhalten.</p>
+   <button class="btn warn" id="btnReset">Sprachnotizen zurücksetzen</button>
+  </div>
+  <p class="muted" style="text-align:center" id="version"></p>
+ </section>
 </main>
 
-<div class="bar">
-  <button class="btn" id="btnRun">Strukturieren</button>
-  <button class="btn sec hidden" id="btnExport">Delta exportieren</button>
-</div>
+<nav>
+ <button data-go="home"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>Übersicht</button>
+ <button data-go="haeuser"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M5 21V7l7-4 7 4v14M9 21v-5h6v5M9 10h.01M15 10h.01"/></svg>Häuser</button>
+ <button data-go="notiz" aria-label="Sprachnotiz"><span class="fab" style="display:flex;align-items:center"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v4"/></svg></span></button>
+ <button data-go="gewerke"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10M10 20V4M16 20v-8M22 20H2"/></svg>Gewerke</button>
+ <button data-go="daten"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v6c0 1.7 3.6 3 8 3s8-1.3 8-3V5M4 11v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6"/></svg>Daten</button>
+</nav>
+<div id="toast"></div>
 
 <script>
-// ---------------------------------------------------------------
-// Stammdaten (Standard = Blatt Einrichtung / Dienstleistung / Kennzahl
-// der SSG-Datenmappe, Stand 30.10.2026; in den Einstellungen änderbar)
-// ---------------------------------------------------------------
-const HAEUSER_DEFAULT = `H01;St. Albertus
-H02;St. Konrad
-H03;St. Johannes Berlin
-H04;St. Josef Schoeneberg
-H05;Bernhard-Lichtenberg-Haus
-H06;Kardinal Bengsch
-H07;Franz-Jordan-Stift
-H08;St. Theresien Schoeneiche
-H09;St. Elisabeth Velten
-H10;St. Johannes Dallgow
-H11;St. Benedikt Brandenburg
-H12;Albert Hirsch Frankfurt/O.
-H13;St. Josef Stralsund
-H14;Stella Maris Heringsdorf
-H15;St. Hildegard
-H16;Sankt Stephanus
-H17;Kardinal von Galen
-H18;Maria im Felde
-H19;Johannes Zinke
-H20;Geschaeftsstelle CAH / Sitz SSG
-H21;Standort 21 (Annahme)
-H22;Standort 22 (Annahme)
-H23;Standort 23 (Annahme)`;
+"use strict";
+const VERSION = "2026-11-17";
+// =====================================================================
+// Beispieldaten (erfunden) aus der SSG-Datenmappe, Datenstand 2027-03.
+// Hausnamen sind in dieser Fassung neutral; echte Namen lokal in den
+// Einstellungen eintragen (bleiben auf dem Gerät).
+// =====================================================================
+const DATENSTAND = "2027-03";
+const HAEUSER_DEFAULT = Array.from({length:23},(_,i)=>{ const n=String(i+1).padStart(2,"0"); return "H"+n+";Haus "+n; }).join("\n");
+const DL = { DL1:"Küche & Service", DL2:"Reinigung", DL3:"Wäscherei", DL4:"Technik & Handwerk", DL5:"Empfang, Service, Fahrdienst", DL6:"Sonstiges / Projekte" };
+const DLS = { DL1:"Küche", DL2:"Reinigung", DL3:"Wäscherei", DL4:"Technik", DL5:"Empfang", DL6:"Sonstiges" };
+const F = "fremd";
+// id, Plätze, Cluster, [DL1..DL5], Haus-Score, Abdeckung %, Trend, rote Linie
+const HOUSES = [
+ ["H09","131","Rettung",[32,43,31,34,34],32,87,-4,true],
+ ["H13","99","Rettung",[29,41,34,34,35],35,87,-2,true],
+ ["H12","80","Optimierung",[64,70,68,76,63],59,89,0,true],
+ ["H11","79","Optimierung",[66,67,56,80,65],63,87,0,false],
+ ["H04","97","Optimierung",[68,66,F,79,60],64,89,-6,false],
+ ["H06","63","Optimierung",[64,59,58,77,60],64,82,-3,false],
+ ["H07","92","Optimierung",[65,69,66,81,59],65,93,3,false],
+ ["H01","76","Optimierung",[63,64,F,78,64],68,87,7,false],
+ ["H05","43","Optimierung",[F,59,F,81,58],68,86,1,false],
+ ["H10","44","Optimierung",[72,65,F,76,67],68,84,4,false],
+ ["H08","56","Neustart",[71,61,F,74,64],69,87,7,false],
+ ["H15","SWH","Optimierung",[F,62,null,73,76],69,90,1,false],
+ ["H02","89","Optimierung",[71,68,F,81,61],71,89,12,false],
+ ["H18","SWH","Optimierung",[F,70,null,80,66],73,86,10,false],
+ ["H14","60-80 (Annahme)","Stabil",[89,89,89,90,86],88,87,-3,false],
+ ["H16","SWH","Stabil",[F,88,null,92,96],89,86,2,false],
+ ["H03","68","Stabil",[86,94,F,93,89],93,92,5,false],
+ ["H17","SWH","Stabil",[F,91,null,90,91],93,90,10,false],
+ ["H19","SWH","Stabil",[F,94,null,92,84],95,86,11,false]
+].map(a=>({id:a[0],plaetze:a[1],cluster:a[2],dl:{DL1:a[3][0],DL2:a[3][1],DL3:a[3][2],DL4:a[3][3],DL5:a[3][4]},score:a[4],abd:a[5],trend:a[6],rl:a[7]}));
+const SSG = { score:64, trend:1, abd:88, dims:{Wirtschaft:60,"Qualität":69,Personal:64,Kunde:63}, gewerk:{DL1:61,DL2:66,DL3:54,DL4:72,DL5:62},
+ cluster:{Neustart:1,Optimierung:11,Rettung:2,Stabil:5},
+ kpi:[["Kosten je Platz und Tag gesamt","44,46 €"],["Wareneinsatz je Beköstigungstag","6,29 €"],["Krankenquote Haus (3-Monats-Mittel)","8,4 %"],["Vakanzquote","5,6 %"],["Prüffristen erfüllt","99 %"],["Zufriedenheit Einrichtungsleitung","3,5"],["Besuchseindruck","3,3"]] };
+const TOP10 = [
+ ["H01","DL4","Prüffristenkataster vervollständigen","2027-04-15","MM / Personal"],
+ ["H04","DL4","Prüffristenkataster vervollständigen","2027-04-15","Haustechnik"],
+ ["H06","DL4","Spülmaschine ersetzen (Investition)","2027-04-15","Haustechnik"],
+ ["H11","DL1","Koch-Vakanz besetzen","2027-04-15","MM"],
+ ["H13","DL1","Koch-Vakanz besetzen","2027-04-15","MM"],
+ ["H14","DL2","Krankenquote Reinigung senken: Revierpläne, BEM","2027-04-15","MM"],
+ ["H18","DL4","Spülmaschine ersetzen (Investition)","2027-04-15","HWL"],
+ ["H02","DL2","Leistungsverzeichnis Reinigung erneuern","2027-04-30","MM / Personal"],
+ ["H03","DL5","Empfang Besetzung Samstag","2027-04-30","MM / Personal"],
+ ["H09","DL2","Leistungsverzeichnis Reinigung erneuern","2027-04-30","HWL"]
+].map(a=>({haus:a[0],dl_id:a[1],thema:a[2],frist:a[3],owner:a[4],prio:1,status:"offen"}));
+const ROTE = [
+ {haus:"H09",dl_id:"DL2",art:"Auflage Heimaufsicht Hygieneplan",seit:"2027-01",frist:"2027-04-15",status:"in Arbeit"},
+ {haus:"H12",dl_id:"DL4",art:"Prüffrist Aufzug 2 überschritten",seit:"2027-03",frist:"2027-04-10",status:"Termin TÜV"},
+ {haus:"H13",dl_id:"DL1",art:"Küchenleitung vakant > 3 Monate",seit:"2026-12",frist:"2027-06-30",status:"Ausschreibung"}
+];
+// Voller Steckbrief ist im Beispiel für H02 hinterlegt (aus Steckbrief_H02_2027-03).
+const DETAIL = { H02: {
+ typ:"SZ · Cluster Ost · Tour T1", belegung:"98 %", plaetze:"89 / 14 / 18 / SWH", zimmer:"57 EZ / 16 DZ · 6 Etagen",
+ flaeche:"6.941 m² Reinigung · 8.636 m² BGF", baujahr:"1995 / 2019", kueche:"Frischküche (Annahme) · Wäscherei vor Ort: nein",
+ letzter:"2027-03-22", naechster:"2027-04-17", dims:{Wirtschaft:65,"Qualität":76,Personal:63,Kunde:77},
+ kpi:[["Verrechnungsvolumen p. a.","1,36 Mio. €"],["Kosten je Platz und Tag gesamt","44,0 € (Ref. 42,5)"],["Kostendeckung","97,7 %"],["Krankenquote Haus (3-Monats-Mittel)","8,20 %"],["Vakanzquote","5,90 %"],["Fluktuation (12 Monate)","23,9 %"],["Leiharbeitsanteil","2,50 %"],["Zufriedenheit Einrichtungsleitung","4 / 5"],["Besuchseindruck","4 / 5"],["Köpfe / VZÄ","35 / 27,1"]],
+ ap:[["Kunde","Einrichtungsleitung","N. N.","2024"],["Kunde","PDL","N. N.","2019"],["Kunde","Heimbeirat","N. N.","2021"],["SSG","HWL","N. N.","2024"],["SSG","Küchenleitung","N. N.","2016"],["SSG","Haustechnik","N. N.","2026"]],
+ gtk:[["Praktisch","Parkplatz Straße, Schlüssel Technikraum bei HWL; Mittag 12:00, Cafeteria 14 bis 17 Uhr"],["Beziehung","Neue EL seit 2026, offen für Piloten; Pflege beklagt Wäscherückgabe"],["Stärken","Technik-Kataster gepflegt; Hausmeister sehr erfahren"],["Risiken","Küchenleitung 62 J. ohne Vertretung; Spülmaschine 2009"]],
+ prios:[{dl_id:"DL2",thema:"Leistungsverzeichnis Reinigung erneuern",frist:"2027-04-30",owner:"MM / Personal",status:"offen",prio:1},{dl_id:"DL1",thema:"Koch-Vakanz besetzen",frist:"2027-05-31",owner:"MM",status:"offen",prio:2},{dl_id:"DL2",thema:"Krankenquote Reinigung senken: Revierpläne, BEM",frist:"2027-04-15",owner:"MM",status:"offen",prio:3}],
+ dl:{
+  DL1:{status:"eigen",team:"16 Köpfe / 12,2 VZÄ",betrieb:"6:00 bis 19:30, 7 Tage; ca. 115 BKT/Tag",systeme:"WaWi X, Menü per Liste",equipment:"Kombidämpfer 2022 ok; Spülmaschine 2021",lv:"veraltet 2019 · 659 T€ p. a.",eindruck:5,hinweis:"Team stabil, Leitung erfahren",
+   kpi:[["K11","Wareneinsatz je BKT","6,07","€/BKT"],["K12","Kosten je BKT gesamt","13,6","€/BKT (Ref. 13,5)"],["K13","Hygiene-/HACCP-Audit","90","Punkte"],["K14","Zufriedenheit EL","4","/ 5"],["K15","Beschwerden Heimbeirat","2",""],["K16","Krankenquote","7,40","%"],["K17","Vakanz Köche / KL","0,50","VZÄ"],["K18","Abfall je Bewohner/Tag","237","g"]]},
+  DL2:{status:"eigen",team:"10 Köpfe / 7,7 VZÄ",betrieb:"6:30 bis 14:00, Mo bis Sa; Zimmer täglich",systeme:"Revierpläne Papier",equipment:"Scheuersaugmaschine 2021",lv:"veraltet 2019 · 395 T€ p. a.",eindruck:4,hinweis:"",
+   kpi:[["K21","Kosten je m² / Monat","5,38","€"],["K22","Leistungswert","197","m²/h"],["K23","Qualitätsprüfung","89","Punkte"],["K24","Reklamationen","4",""],["K25","Krankenquote","9,60","%"],["K26","Zufriedenheit EL","4","/ 5"]]},
+  DL3:{status:"fremd",partner:"SSG-Wäscherei (Haus 06) · Vertrag bis 2027-12-31",kpi:[]},
+  DL4:{status:"eigen",team:"2 Köpfe / 2,0 VZÄ",betrieb:"Mo bis Fr 6:30 bis 15:00; Rufbereitschaft Pool",systeme:"CAFM-Test",equipment:"Aufzüge 3, BMA 2012",lv:"aktuell 2024 · 190 T€ p. a.",eindruck:3,hinweis:"Team stabil, Leitung erfahren",
+   kpi:[["K41","Instandhaltung je Platz/Jahr","670","€ (Ref. 650)"],["K42","Fremdleistungsquote","36,2","% (Ref. 35)"],["K43","Prüffristen erfüllt","100","%"],["K44","Offene Auflagen","0",""],["K45","Ticket-Reaktionszeit","40","h"],["K46","Leerstandstage Renovierung","6","Tage"],["K47","Vakanz Technik","0","VZÄ"]]},
+  DL5:{status:"eigen",team:"7 Köpfe / 5,2 VZÄ",betrieb:"Empfang Mo bis Fr 8 bis 17; Service 7 bis 19, 7 Tage",systeme:"n. n.",equipment:"Bus 2020",lv:"fehlt · 117 T€ p. a.",eindruck:3,hinweis:"Equipment am Ende der Laufzeit",
+   kpi:[["K51","Kosten je Platz/Tag","2,30","€ (Ref. 2,30)"],["K52","Besetzung Empfang","91,3","%"],["K53","Fahrdienst pünktlich","93","%"],["K54","Krankenquote","9,50","%"],["K55","Zufriedenheit EL","3","/ 5"]]}
+ } } };
+const ZIEL = { DL2:[["Kosten je m² / Monat","grün ≤ 4,80 · gelb ≤ 5,60"],["Leistungswert m²/h Zimmer","grün ≥ 200 · gelb ≥ 150"],["Qualitätsprüfung (Punkte)","grün ≥ 90 · gelb ≥ 80"],["Krankenquote","grün ≤ 7 % · gelb ≤ 10 %"],["EL-Zufriedenheit","grün ≥ 4 · gelb 3"]] };
 
-const DL = {
-  DL1:"Kueche & Service", DL2:"Reinigung", DL3:"Waescherei",
-  DL4:"Haustechnik & Handwerk", DL5:"Empfang, Bewohnerservice, Fahrdienst", DL6:"Sonstiges / Projekte"
-};
-
-// Kennzahlen aus SSG_Kennzahlenkatalog.md (ID, Name, Gewerk); nur manuell
-// erhebbare oder per Besuch beobachtbare sind für Sprachnotizen sinnvoll,
-// der Rest bleibt zur Vollständigkeit drin.
 const KPI = [
-["K01","Kosten je Platz und Tag gesamt","Haus"],["K02","Verrechnungsvolumen je Platz und Tag","Haus"],
-["K03","Kostendeckung","Haus"],["K04","Krankenquote Haus (3-Monats-Mittel)","Haus"],["K05","Vakanzquote","Haus"],
-["K06","Fluktuation (12 Monate)","Haus"],["K07","Leiharbeitsanteil","Haus"],
-["K08","Zufriedenheit Einrichtungsleitung (Mittel ueber Gewerke)","Haus"],["K09","Besuchseindruck (Mittel ueber Gewerke)","Haus"],
-["K10","Mitarbeiterstimmung (Puls)","Haus"],
-["K11","Wareneinsatz je Bekoestigungstag","DL1"],["K12","Kosten je Bekoestigungstag gesamt","DL1"],
-["K13","Hygiene- und HACCP-Audit (Punkte)","DL1"],["K14","Zufriedenheit EL Kueche (1-5)","DL1"],
-["K15","Beschwerden Heimbeirat / Speisekommission","DL1"],["K16","Krankenquote Kueche","DL1"],
-["K17","Vakanz Koeche / Kuechenleitung","DL1"],["K18","Lebensmittelabfall je Bewohner und Tag","DL1"],["K19","Verzehr-/Teilnahmequote","DL1"],
-["K21","Kosten je m2 Reinigungsflaeche und Monat","DL2"],["K22","Leistungswert","DL2"],
-["K23","Qualitaetspruefung Reinigung (Punkte)","DL2"],["K24","Reklamationen Reinigung","DL2"],
+["K01","Kosten je Platz und Tag gesamt","Haus"],["K02","Verrechnungsvolumen je Platz und Tag","Haus"],["K03","Kostendeckung","Haus"],["K04","Krankenquote Haus (3-Monats-Mittel)","Haus"],["K05","Vakanzquote","Haus"],
+["K06","Fluktuation (12 Monate)","Haus"],["K07","Leiharbeitsanteil","Haus"],["K08","Zufriedenheit Einrichtungsleitung (Mittel über Gewerke)","Haus"],["K09","Besuchseindruck (Mittel über Gewerke)","Haus"],["K10","Mitarbeiterstimmung (Puls)","Haus"],
+["K11","Wareneinsatz je Beköstigungstag","DL1"],["K12","Kosten je Beköstigungstag gesamt","DL1"],["K13","Hygiene- und HACCP-Audit (Punkte)","DL1"],["K14","Zufriedenheit EL Küche (1-5)","DL1"],
+["K15","Beschwerden Heimbeirat / Speisekommission","DL1"],["K16","Krankenquote Küche","DL1"],["K17","Vakanz Köche / Küchenleitung","DL1"],["K18","Lebensmittelabfall je Bewohner und Tag","DL1"],["K19","Verzehr-/Teilnahmequote","DL1"],
+["K21","Kosten je m2 Reinigungsfläche und Monat","DL2"],["K22","Leistungswert","DL2"],["K23","Qualitätsprüfung Reinigung (Punkte)","DL2"],["K24","Reklamationen Reinigung","DL2"],
 ["K25","Krankenquote Reinigung","DL2"],["K26","Zufriedenheit EL Reinigung (1-5)","DL2"],["K27","Verbrauch Reinigungschemie je m2","DL2"],
-["K31","Kosten je kg Waesche","DL3"],["K32","Verlust- und Reklamationsquote Waesche","DL3"],
-["K33","Durchlaufzeit Bewohnerwaesche","DL3"],["K34","Hygienestatus Waescherei (RAL-GZ 992/3)","DL3"],
-["K35","Krankenquote Waescherei","DL3"],["K36","Zufriedenheit Pflege Dienstkleidung und Bewohnerwaesche","DL3"],["K37","Energie und Wasser je kg","DL3"],
-["K41","Instandhaltungskosten je Platz und Jahr","DL4"],["K42","Fremdleistungsquote Technik","DL4"],
-["K43","Prueffristen erfuellt (%)","DL4"],["K44","Offene Auflagen (Anzahl)","DL4"],["K45","Ticket-Reaktionszeit Technik","DL4"],
+["K31","Kosten je kg Wäsche","DL3"],["K32","Verlust- und Reklamationsquote Wäsche","DL3"],["K33","Durchlaufzeit Bewohnerwäsche","DL3"],["K34","Hygienestatus Wäscherei (RAL-GZ 992/3)","DL3"],
+["K35","Krankenquote Wäscherei","DL3"],["K36","Zufriedenheit Pflege Dienstkleidung und Bewohnerwäsche","DL3"],["K37","Energie und Wasser je kg","DL3"],
+["K41","Instandhaltungskosten je Platz und Jahr","DL4"],["K42","Fremdleistungsquote Technik","DL4"],["K43","Prüffristen erfüllt (%)","DL4"],["K44","Offene Auflagen (Anzahl)","DL4"],["K45","Ticket-Reaktionszeit Technik","DL4"],
 ["K46","Leerstandstage durch Zimmerrenovierung","DL4"],["K47","Vakanz Hausmeister / Technik","DL4"],["K48","Energie je Platz","DL4"],
-["K51","Kosten Empfang/Service/Fahrdienst je Platz und Tag","DL5"],["K52","Besetzungsquote Empfang","DL5"],
-["K53","Fahrdienst Puenktlichkeit und Ausfaelle","DL5"],["K54","Krankenquote Empfang/Service","DL5"],["K55","Zufriedenheit EL Empfang/Service (1-5)","DL5"],
-["K61","Pilotstatus (Plan/Ist der Messgroesse)","Haus"],["K62","Erledigungsquote Prios","Haus"]
+["K51","Kosten Empfang/Service/Fahrdienst je Platz und Tag","DL5"],["K52","Besetzungsquote Empfang","DL5"],["K53","Fahrdienst Pünktlichkeit und Ausfälle","DL5"],["K54","Krankenquote Empfang/Service","DL5"],["K55","Zufriedenheit EL Empfang/Service (1-5)","DL5"],
+["K61","Pilotstatus (Plan/Ist der Messgröße)","Haus"],["K62","Erledigungsquote Prios","Haus"]
 ];
 
-// ---------------------------------------------------------------
-// Tool-Schema: genau das, was import_ssg_delta.py erwartet (v1)
-// ---------------------------------------------------------------
-const TOOL = {
-  name: "besuchsdelta",
-  description: "Strukturiert eine Sprachnotiz nach einem Hausbesuch in ein Besuchs-Delta nach dem SSG-Datenmodell E0. Nur Dinge aufnehmen, die im Text wirklich stehen; nichts erfinden, nichts ergänzen. Unklares in rueckfragen eintragen.",
-  input_schema: {
-    type:"object",
-    properties:{
-      besuch:{type:"object",properties:{
-        eindruck:{type:"object",description:"Besuchseindruck 1-5 je Gewerk, nur wenn im Text eine Bewertung vorkommt",
-          properties:{DL1:{type:["integer","null"]},DL2:{type:["integer","null"]},DL3:{type:["integer","null"]},DL4:{type:["integer","null"]},DL5:{type:["integer","null"]}}},
-        satz_je_gewerk:{type:"string",description:"Ein kurzer Satz je erwähntem Gewerk, Form 'DL1: …; DL2: …'"},
-        naechster_schritt:{type:"string"}
-      }},
-      ansprechpartner:{type:"array",items:{type:"object",required:["seite","rolle","name"],properties:{
-        seite:{type:"string",enum:["Kunde","SSG"]},
-        rolle:{type:"string",description:"z. B. Einrichtungsleitung, PDL, Verwaltung, Heimbeirat, HWL, Kuechenleitung, Reinigungsleitung, Waeschereileitung, Haustechnik, Empfang"},
-        name:{type:"string"},seit:{type:"string",description:"JJJJ-MM oder JJJJ, leer wenn unbekannt"},
-        hinweis_beruflich:{type:"string"},
-        ersetzt_vorgaenger:{type:"boolean",description:"true wenn der Text sagt, die Person ist NEU in dieser Rolle"}
-      }}},
-      prios:{type:"array",description:"Maßnahmen am Haus (Thema, Gewerk, Frist, Owner). Keine persönlichen Erinnerungen, die gehören in todos.",items:{type:"object",required:["dl_id","thema"],properties:{
-        dl_id:{type:"string",enum:["DL1","DL2","DL3","DL4","DL5","DL6","Haus"]},thema:{type:"string"},
-        prio:{type:"integer",minimum:1,maximum:3,description:"1 = dringend/rote Linie nah, 2 = wichtig, 3 = geplant; fehlt eine Angabe: 2"},
-        frist:{type:"string",description:"JJJJ-MM-TT, aus relativen Angaben (nächste Woche) ab Besuchsdatum berechnen; leer wenn keine Angabe"},
-        owner:{type:"string"},status:{type:"string",enum:["offen","laeuft","geplant"]},kommentar:{type:"string"}
-      }}},
-      prio_updates:{type:"array",description:"Bestehende Maßnahmen, die der Text als erledigt oder verändert meldet",items:{type:"object",required:["thema_suche","status"],properties:{
-        thema_suche:{type:"string",description:"Stichwort zum Finden der bestehenden Prio"},status:{type:"string",enum:["offen","laeuft","geplant","erledigt"]},kommentar:{type:"string"}
-      }}},
-      rote_linien:{type:"array",description:"Nur bei: Prüffrist gerissen, Hygienebeanstandung, Auflage Heimaufsicht, Schlüsselposition >3 Monate vakant",items:{type:"object",required:["dl_id","art"],properties:{
-        dl_id:{type:"string",enum:["DL1","DL2","DL3","DL4","DL5","DL6"]},art:{type:"string",enum:["Prueffrist","Hygiene","Auflage","Vakanz"]},
-        seit:{type:"string"},frist:{type:"string"},status:{type:"string"},kommentar:{type:"string"}
-      }}},
-      messwerte:{type:"array",description:"Nur Zahlen, die der Text explizit nennt und die einer Kennzahl-ID zuzuordnen sind",items:{type:"object",required:["kpi_id","wert"],properties:{
-        kpi_id:{type:"string"},dl_id:{type:"string",description:"DL1-DL6 oder Haus, passend zur Kennzahl"},
-        monat:{type:"string",description:"JJJJ-MM, Standard = Monat des Besuchs"},wert:{type:"number"},kommentar:{type:"string"}
-      }}},
-      leistung:{type:"array",description:"Beobachtungen je Gewerk: Equipment-Zustand, Status, Leitung, Hinweis",items:{type:"object",required:["dl_id"],properties:{
-        dl_id:{type:"string",enum:["DL1","DL2","DL3","DL4","DL5","DL6"]},
-        status:{type:["string","null"],enum:["eigen","teilweise","fremd","nicht angeboten",null]},
-        partner:{type:"string"},leitung_vor_ort:{type:"string"},equipment:{type:"string",description:"Gerät, Baujahr, Zustand"},
-        systeme:{type:"string"},hinweis:{type:"string",description:"ein Satz"}
-      }}},
-      einrichtung:{type:"object",properties:{
-        good_to_know_praktisch:{type:"string"},good_to_know_beziehung:{type:"string"},staerken:{type:"string"},risiken:{type:"string"},
-        naechster_besuch:{type:"string",description:"JJJJ-MM-TT wenn vereinbart"}
-      }},
-      todos:{type:"array",description:"Persönliche Aufgaben des Erfassers (mit X sprechen, Y nachsehen)",items:{type:"object",required:["text"],properties:{
-        text:{type:"string"},faellig:{type:"string",description:"JJJJ-MM-TT oder leer"},owner:{type:"string"},bezug_dl:{type:"string"}
-      }}},
-      rueckfragen:{type:"array",items:{type:"string"},description:"Was unklar blieb (Gewerk nicht eindeutig, Zahl ohne Einheit, Name ohne Rolle)"}
-    },
-    required:["besuch","ansprechpartner","prios","prio_updates","rote_linien","messwerte","leistung","einrichtung","todos","rueckfragen"]
-  }
+// Vorbereitetes Beispiel für die Vorführung (erfunden), passt zum Steckbrief H02
+const DEMO_TEXT = "War heute im Haus 02. Frau Meier ist seit April die neue Pflegedienstleitung. Die Spülmaschine in der Küche ist ausgefallen, Reparatur oder Ersatz muss ich bis nächste Woche mit der Haustechnik klären. Reinigung der Flure in Ordnung, Eindruck 4. Das HACCP-Audit lag bei 87 Punkten. Die Koch-Vakanz ist besetzt, der neue Koch fängt im Mai an. Nächster Besuch am 15. Mai.";
+const DEMO_HAUS = "H02", DEMO_DATUM = "2027-04-17";
+const DEMO_DELTA = {
+ besuch:{eindruck:{DL1:null,DL2:4,DL3:null,DL4:null,DL5:null},satz_je_gewerk:"DL1: Spülmaschine ausgefallen; DL2: Flure in Ordnung",naechster_schritt:"Spülmaschine mit Haustechnik klären"},
+ ansprechpartner:[{seite:"Kunde",rolle:"PDL",name:"Frau Meier",seit:"2027-04",hinweis_beruflich:"",ersetzt_vorgaenger:true}],
+ prios:[{dl_id:"DL1",thema:"Spülmaschine Küche ausgefallen, Reparatur oder Ersatz klären",prio:1,frist:"2027-04-24",owner:"Haustechnik",status:"offen",kommentar:""}],
+ prio_updates:[{thema_suche:"Koch-Vakanz",status:"erledigt",kommentar:"neuer Koch ab 05/2027"}],
+ rote_linien:[],
+ messwerte:[{kpi_id:"K13",dl_id:"DL1",monat:"2027-04",wert:87,kommentar:"laut Aussage vor Ort"}],
+ leistung:[{dl_id:"DL1",status:null,partner:"",leitung_vor_ort:"",equipment:"Spülmaschine ausgefallen",systeme:"",hinweis:"Spülmaschine ausgefallen, Ersatz offen"}],
+ einrichtung:{good_to_know_praktisch:"",good_to_know_beziehung:"",staerken:"",risiken:"",naechster_besuch:"2027-05-15"},
+ todos:[{text:"Mit Haustechnik wegen Spülmaschine Haus 02 sprechen",faellig:"2027-04-24",owner:"MM",bezug_dl:"DL1"}],
+ rueckfragen:[]
 };
 
+// =====================================================================
+// Tool-Schema: genau das, was import_ssg_delta.py erwartet (v1)
+// =====================================================================
+const TOOL = {
+ name:"besuchsdelta",
+ description:"Strukturiert eine Sprachnotiz nach einem Hausbesuch in ein Besuchs-Delta nach dem SSG-Datenmodell E0. Nur Dinge aufnehmen, die im Text wirklich stehen; nichts erfinden, nichts ergänzen. Unklares in rueckfragen eintragen.",
+ input_schema:{ type:"object", properties:{
+  besuch:{type:"object",properties:{
+   eindruck:{type:"object",description:"Besuchseindruck 1-5 je Gewerk, nur wenn im Text eine Bewertung vorkommt",properties:{DL1:{type:["integer","null"]},DL2:{type:["integer","null"]},DL3:{type:["integer","null"]},DL4:{type:["integer","null"]},DL5:{type:["integer","null"]}}},
+   satz_je_gewerk:{type:"string",description:"Ein kurzer Satz je erwähntem Gewerk, Form 'DL1: …; DL2: …'"},
+   naechster_schritt:{type:"string"} }},
+  ansprechpartner:{type:"array",items:{type:"object",required:["seite","rolle","name"],properties:{
+   seite:{type:"string",enum:["Kunde","SSG"]},
+   rolle:{type:"string",description:"z. B. Einrichtungsleitung, PDL, Verwaltung, Heimbeirat, HWL, Kuechenleitung, Reinigungsleitung, Waeschereileitung, Haustechnik, Empfang"},
+   name:{type:"string"},seit:{type:"string",description:"JJJJ-MM oder JJJJ, leer wenn unbekannt"},hinweis_beruflich:{type:"string"},
+   ersetzt_vorgaenger:{type:"boolean",description:"true wenn der Text sagt, die Person ist NEU in dieser Rolle"} }}},
+  prios:{type:"array",description:"Maßnahmen am Haus (Thema, Gewerk, Frist, Owner). Keine persönlichen Erinnerungen, die gehören in todos.",items:{type:"object",required:["dl_id","thema"],properties:{
+   dl_id:{type:"string",enum:["DL1","DL2","DL3","DL4","DL5","DL6","Haus"]},thema:{type:"string"},
+   prio:{type:"integer",minimum:1,maximum:3,description:"1 = dringend/rote Linie nah, 2 = wichtig, 3 = geplant; fehlt eine Angabe: 2"},
+   frist:{type:"string",description:"JJJJ-MM-TT, aus relativen Angaben (nächste Woche) ab Besuchsdatum berechnen; leer wenn keine Angabe"},
+   owner:{type:"string"},status:{type:"string",enum:["offen","laeuft","geplant"]},kommentar:{type:"string"} }}},
+  prio_updates:{type:"array",description:"Bestehende Maßnahmen, die der Text als erledigt oder verändert meldet",items:{type:"object",required:["thema_suche","status"],properties:{
+   thema_suche:{type:"string",description:"Stichwort zum Finden der bestehenden Prio"},status:{type:"string",enum:["offen","laeuft","geplant","erledigt"]},kommentar:{type:"string"} }}},
+  rote_linien:{type:"array",description:"Nur bei: Prüffrist gerissen, Hygienebeanstandung, Auflage Heimaufsicht, Schlüsselposition >3 Monate vakant",items:{type:"object",required:["dl_id","art"],properties:{
+   dl_id:{type:"string",enum:["DL1","DL2","DL3","DL4","DL5","DL6"]},art:{type:"string",enum:["Prueffrist","Hygiene","Auflage","Vakanz"]},
+   seit:{type:"string"},frist:{type:"string"},status:{type:"string"},kommentar:{type:"string"} }}},
+  messwerte:{type:"array",description:"Nur Zahlen, die der Text explizit nennt und die einer Kennzahl-ID zuzuordnen sind",items:{type:"object",required:["kpi_id","wert"],properties:{
+   kpi_id:{type:"string"},dl_id:{type:"string",description:"DL1-DL6 oder Haus, passend zur Kennzahl"},
+   monat:{type:"string",description:"JJJJ-MM, Standard = Monat des Besuchs"},wert:{type:"number"},kommentar:{type:"string"} }}},
+  leistung:{type:"array",description:"Beobachtungen je Gewerk: Equipment-Zustand, Status, Leitung, Hinweis",items:{type:"object",required:["dl_id"],properties:{
+   dl_id:{type:"string",enum:["DL1","DL2","DL3","DL4","DL5","DL6"]},
+   status:{type:["string","null"],enum:["eigen","teilweise","fremd","nicht angeboten",null]},
+   partner:{type:"string"},leitung_vor_ort:{type:"string"},equipment:{type:"string",description:"Gerät, Baujahr, Zustand"},
+   systeme:{type:"string"},hinweis:{type:"string",description:"ein Satz"} }}},
+  einrichtung:{type:"object",properties:{
+   good_to_know_praktisch:{type:"string"},good_to_know_beziehung:{type:"string"},staerken:{type:"string"},risiken:{type:"string"},
+   naechster_besuch:{type:"string",description:"JJJJ-MM-TT wenn vereinbart"} }},
+  todos:{type:"array",description:"Persönliche Aufgaben des Erfassers (mit X sprechen, Y nachsehen)",items:{type:"object",required:["text"],properties:{
+   text:{type:"string"},faellig:{type:"string",description:"JJJJ-MM-TT oder leer"},owner:{type:"string"},bezug_dl:{type:"string"} }}},
+  rueckfragen:{type:"array",items:{type:"string"},description:"Was unklar blieb (Gewerk nicht eindeutig, Zahl ohne Einheit, Name ohne Rolle)"}
+ }, required:["besuch","ansprechpartner","prios","prio_updates","rote_linien","messwerte","leistung","einrichtung","todos","rueckfragen"] }
+};
 function systemPrompt(hausId, hausName, datum){
-  return `Du strukturierst Sprachnotizen der Geschäftsbereichsleitung Service & Versorgung der SSG (Caritas Altenhilfe) nach Hausbesuchen. Besuch: ${hausId} ${hausName}, Datum ${datum}.
+ return `Du strukturierst Sprachnotizen der Geschäftsbereichsleitung Service & Versorgung der SSG (Caritas Altenhilfe) nach Hausbesuchen. Besuch: ${hausId} ${hausName}, Datum ${datum}.
 Gewerke: ${Object.entries(DL).map(([k,v])=>k+" = "+v).join("; ")}.
 Kennzahlen (ID, Name, Gewerk): ${KPI.map(k=>k.join(" ")).join("; ")}.
-Regeln: Nur aufnehmen, was im Text steht; keine Annahmen, keine Vervollständigung. Jede Zahl braucht eine passende Kennzahl, sonst gehört sie in rueckfragen. Relative Zeitangaben auf das Besuchsdatum beziehen. Personen nur mit dienstlicher Rolle; keine Bewohnerinnen oder Bewohner, keine Gesundheitsangaben über Personen. Vorname allein ohne Rolle: bei 'mit X sprechen' ist X Owner oder Todo-Bezug, kein Ansprechpartner. Text in deutscher Sprache, kurz, Faktenstil.
-Antworte ausschließlich durch einen Aufruf des Tools besuchsdelta, ohne Text davor oder danach.`;
+Regeln: Nur aufnehmen, was im Text steht; keine Annahmen, keine Vervollständigung. Jede Zahl braucht eine passende Kennzahl, sonst gehört sie in rueckfragen. Relative Zeitangaben auf das Besuchsdatum beziehen. Personen nur mit dienstlicher Rolle; keine Bewohnerinnen oder Bewohner, keine Gesundheitsangaben über Personen. Vorname allein ohne Rolle: bei 'mit X sprechen' ist X Owner oder Todo-Bezug, kein Ansprechpartner. Text in deutscher Sprache, kurz, Faktenstil.`;
 }
 
-// ---------------------------------------------------------------
-// State und Helfer
-// ---------------------------------------------------------------
+// =====================================================================
+// Speicher und Helfer
+// =====================================================================
 const $ = id => document.getElementById(id);
-const LS = { key:"ssg_api_key", model:"ssg_model", erf:"ssg_erfasser", haeuser:"ssg_haeuser", draft:"ssg_draft" };
-let delta = null;
-
-function haeuser(){
-  return (localStorage.getItem(LS.haeuser) || HAEUSER_DEFAULT).split("\n").map(l=>l.trim()).filter(Boolean)
-    .map(l=>{ const [id,...n]=l.split(";"); return {id:id.trim(), name:(n.join(";")||"").trim()}; });
-}
-function fillHaeuser(){
-  const sel=$("haus"); const cur=sel.value; sel.innerHTML="";
-  for(const h of haeuser()){ const o=document.createElement("option"); o.value=h.id; o.textContent=h.id+" "+h.name; sel.appendChild(o); }
-  if(cur) sel.value=cur;
-}
-function showStatus(el, msg, kind){ el.textContent=msg; el.className="status show "+kind; }
+const LS = { key:"ssg_api_key", model:"ssg_model", erf:"ssg_erfasser", haeuser:"ssg_haeuser", draft:"ssg_draft", deltas:"ssg_deltas" };
+const store = { get(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } }, set(k,v){ try{ localStorage.setItem(k,v); }catch(e){} }, del(k){ try{ localStorage.removeItem(k); }catch(e){} } };
+let delta = null, demoArmed = false;
+const clone = o => JSON.parse(JSON.stringify(o));
+function esc(s){ return String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
+function today(){ const d=new Date(); return new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,10); }
+function dde(s){ if(!s) return ""; const m=/^(\d{4})-(\d{2})(?:-(\d{2}))?$/.exec(s); return m ? (m[3]?m[3]+".":"")+m[2]+"."+m[1] : s; }
+function num(v){ return String(v).replace(".",","); }
+function cls(v){ return typeof v!=="number" ? "x" : v>=80 ? "g" : v>=50 ? "y" : "r"; }
+function trend(t){ return (t>0?"▲ +":t<0?"▼ ":"▬ ±")+t; }
+function haeuser(){ return (store.get(LS.haeuser)||HAEUSER_DEFAULT).split("\n").map(l=>l.trim()).filter(Boolean).map(l=>{ const [id,...n]=l.split(";"); return {id:id.trim(),name:(n.join(";")||"").trim()}; }); }
+function hname(id){ const h=haeuser().find(x=>x.id===id); return h&&h.name ? h.name : id; }
+function deltas(){ try{ return JSON.parse(store.get(LS.deltas)||"[]"); }catch(e){ return []; } }
+function toast(msg){ const t=$("toast"); t.textContent=msg; t.classList.add("show"); clearTimeout(toast._t); toast._t=setTimeout(()=>t.classList.remove("show"),2600); }
+function showStatus(el,msg,kind){ el.textContent=msg; el.className="status show "+kind; }
 function hideStatus(el){ el.className="status"; }
-function today(){ const d=new Date(); return d.toISOString().slice(0,10); }
+function ring(v,small,sub){ const c=263.9, p=typeof v==="number"?v:0, k=cls(v), col={g:"#2e7d32",y:"#f9a825",r:"#c62828",x:"#b7bfc9"}[k];
+ return `<div class="ring${small?" s":""}"><svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="42" fill="none" stroke="#eceff3" stroke-width="10"/><circle cx="50" cy="50" r="42" fill="none" stroke="${col}" stroke-width="10" stroke-linecap="round" stroke-dasharray="${(c*p/100).toFixed(1)} ${c}"/></svg><div class="val c-${k}">${typeof v==="number"?v:"–"}${sub?`<small>${esc(sub)}</small>`:""}</div></div>`; }
+function dimBars(d){ return Object.entries(d).map(([k,v])=>`<div class="dim"><span class="muted">${esc(k)}</span><div class="bar"><i class="b-${cls(v)}" style="width:${v}%"></i></div><b class="c-${cls(v)}">${v}</b></div>`).join(""); }
+const CHEV = '<svg class="chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg>';
+const MIC = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v4"/></svg>';
 
-function loadSettings(){
-  $("apiKey").value = localStorage.getItem(LS.key)||"";
-  $("model").value = localStorage.getItem(LS.model)||"claude-sonnet-5-5";
-  $("erfasser").value = localStorage.getItem(LS.erf)||"MM";
-  $("haeuser").value = localStorage.getItem(LS.haeuser)||HAEUSER_DEFAULT;
+// =====================================================================
+// Steckbrief = Beispieldaten + übernommene Sprachnotizen (additiv, wie
+// import_ssg_delta.py: nichts wird überschrieben, Änderungen sind markiert)
+// =====================================================================
+function hausModell(id){
+ const base = HOUSES.find(h=>h.id===id); if(!base) return null;
+ const det = DETAIL[id] ? clone(DETAIL[id]) : null;
+ const m = { ...clone(base), name:hname(id), det, notes:[], todos:[], mw:[], hinweise:[], neu:0,
+  prios: det ? det.prios.map(p=>({...p})) : TOP10.filter(p=>p.haus===id).map(p=>({...p})),
+  rote: ROTE.filter(r=>r.haus===id).map(r=>({...r})),
+  ap: det ? det.ap.map(a=>({seite:a[0],rolle:a[1],name:a[2],seit:a[3]})) : [],
+  gtk: det ? det.gtk.map(g=>({k:g[0],v:g[1]})) : [],
+  letzter: det ? det.letzter : "", naechster: det ? det.naechster : "" };
+ if(det) for(const d of Object.values(det.dl)) d.kpi = (d.kpi||[]).map(k=>({id:k[0],name:k[1],wert:k[2],einheit:k[3]}));
+ for(const dt of deltas().filter(x=>x.haus_id===id)){
+  const src = dde(dt.datum); m.neu++;
+  const b = dt.besuch||{};
+  m.notes.push({datum:dt.datum,typ:dt.typ,satz:b.satz_je_gewerk||"",schritt:b.naechster_schritt||"",freitext:dt.freitext||""});
+  if(dt.datum > (m.letzter||"")) { m.letzter=dt.datum; m.letzterNeu=true; }
+  for(const [k,v] of Object.entries(b.eindruck||{})) if(v!=null && det && det.dl[k]){ det.dl[k].eindruckAlt=det.dl[k].eindruck; det.dl[k].eindruck=v; det.dl[k].eindruckNeu=true; det.dl[k].eindruckSrc=src; }
+  for(const a of dt.ansprechpartner||[]){
+   if(a.ersetzt_vorgaenger) for(const x of m.ap) if(x.seite===a.seite && x.rolle.toLowerCase()===String(a.rolle).toLowerCase() && !x.neu) x.abgeloest=true;
+   m.ap.push({...a,neu:true,src});
+  }
+  for(const p of dt.prios||[]) m.prios.push({...p,neu:true,src});
+  for(const u of dt.prio_updates||[]){
+   const hit = m.prios.filter(p=>p.thema.toLowerCase().includes(String(u.thema_suche).toLowerCase()));
+   if(hit.length===1){ hit[0].statusAlt=hit[0].status; hit[0].status=u.status; hit[0].kommentar=u.kommentar||""; hit[0].geaendert=true; hit[0].src=src; }
+   else m.hinweise.push(`Prio-Änderung „${u.thema_suche}“ nicht eindeutig zuordenbar (${hit.length} Treffer), bitte am Rechner prüfen.`);
+  }
+  for(const r of dt.rote_linien||[]) m.rote.push({...r,neu:true,src});
+  for(const w of dt.messwerte||[]){
+   let hit=null; if(det) for(const d of Object.values(det.dl)) for(const k of d.kpi) if(k.id===w.kpi_id) hit=k;
+   if(hit){ hit.alt=hit.wert; hit.wert=num(w.wert); hit.neu=true; hit.src=src; hit.monat=w.monat; }
+   else { const def=KPI.find(k=>k[0]===w.kpi_id); m.mw.push({...w,name:def?def[1]:w.kpi_id,src}); }
+  }
+  for(const l of dt.leistung||[]) if(det && det.dl[l.dl_id]){ const d=det.dl[l.dl_id]; d.zusatz=d.zusatz||[];
+   if(l.equipment) d.zusatz.push({k:"Equipment",v:l.equipment,src}); if(l.hinweis) d.zusatz.push({k:"Hinweis",v:l.hinweis,src});
+   if(l.leitung_vor_ort) d.zusatz.push({k:"Leitung vor Ort",v:l.leitung_vor_ort,src}); if(l.systeme) d.zusatz.push({k:"Systeme",v:l.systeme,src}); if(l.partner) d.zusatz.push({k:"Partner",v:l.partner,src}); }
+   else if(l.equipment||l.hinweis) m.hinweise.push(`${l.dl_id}: ${[l.equipment,l.hinweis].filter(Boolean).join(" · ")}`);
+  const e = dt.einrichtung||{};
+  for(const [k,lab] of [["good_to_know_praktisch","Praktisch"],["good_to_know_beziehung","Beziehung"],["staerken","Stärken"],["risiken","Risiken"]]) if(e[k]) m.gtk.push({k:lab,v:e[k],neu:true,src});
+  if(e.naechster_besuch){ m.naechster=e.naechster_besuch; m.naechsterNeu=true; }
+  for(const t of dt.todos||[]) m.todos.push({...t,src,haus:id});
+ }
+ return m;
 }
-function saveSettings(){
-  localStorage.setItem(LS.key, $("apiKey").value.trim());
-  localStorage.setItem(LS.model, $("model").value);
-  localStorage.setItem(LS.erf, $("erfasser").value.trim()||"MM");
-  localStorage.setItem(LS.haeuser, $("haeuser").value.trim()||HAEUSER_DEFAULT);
-  fillHaeuser(); $("settings").classList.add("hidden");
-  showStatus($("status"),"Einstellungen gespeichert.","ok");
-}
-function saveDraft(){ try{ localStorage.setItem(LS.draft, JSON.stringify({haus:$("haus").value,datum:$("datum").value,typ:$("typ").value,text:$("text").value})); }catch(e){} }
-function loadDraft(){ try{ const d=JSON.parse(localStorage.getItem(LS.draft)||"null"); if(d){ $("haus").value=d.haus||""; $("datum").value=d.datum||today(); $("typ").value=d.typ||"Einzel"; $("text").value=d.text||""; } }catch(e){} }
+const neuTag = src => `<span class="tag neu">neu · ${esc(src||"Sprachnotiz")}</span>`;
 
-// ---------------------------------------------------------------
+// =====================================================================
+// Ansichten
+// =====================================================================
+function vHome(){
+ const ds = deltas(), n = ds.length;
+ const rlNeu = ds.reduce((s,d)=>s+(d.rote_linien||[]).length,0);
+ const todos = ds.flatMap(d=>(d.todos||[]).map(t=>({...t,haus:d.haus_id})));
+ let h = `<div class="card"><div class="hero">${ring(SSG.score,false,"SSG gesamt")}<div class="grow" style="flex:1">
+   <div class="muted">Health Score · Datenstand ${dde(DATENSTAND)}</div>
+   <div style="font-weight:650;margin:2px 0 8px"><span class="c-g">${trend(SSG.trend)}</span> zum Vormonat · Abdeckung ${SSG.abd} %</div>${dimBars(SSG.dims)}</div></div></div>
+  <div class="stats"><div class="stat"><b>${HOUSES.length}</b><span>Häuser</span></div><div class="stat"><b class="c-r">${ROTE.length+rlNeu}</b><span>Rote Linien</span></div><div class="stat"><b class="${n?"c-g":""}" style="${n?"color:var(--neu)":""}">${n}</b><span>Sprachnotizen</span></div></div>
+  <button class="cta" data-go="notiz">${MIC} Sprachnotiz aufnehmen</button>
+  <button class="btn sec hidden" id="btnInstall" style="margin-bottom:12px">App auf dem Startbildschirm installieren</button>`;
+ if(n){ h += `<div class="card"><h2>Neu aus Sprachnotizen</h2>` + ds.slice().reverse().map(d=>{
+   const c=(d.prios||[]).length+(d.prio_updates||[]).length+(d.messwerte||[]).length+(d.ansprechpartner||[]).length+(d.rote_linien||[]).length;
+   return `<div class="li tap" data-go="haus/${esc(d.haus_id)}"><div class="grow"><div class="ttl">${esc(hname(d.haus_id))}</div><div class="sub">Besuch ${dde(d.datum)} · ${c} Einträge im Steckbrief</div></div><span class="tag neu">neu</span>${CHEV}</div>`; }).join("") + `</div>`; }
+ if(todos.length) h += `<div class="card"><h2>Meine To-dos</h2>` + todos.map(t=>`<div class="li"><div class="grow"><div style="font-size:15px">${esc(t.text)}</div><div class="sub">${esc(hname(t.haus))}${t.faellig?" · fällig "+dde(t.faellig):""}</div></div></div>`).join("") + `</div>`;
+ h += `<div class="card"><h2>Rote Linien <span class="tag rl">deckeln den Score auf 59</span></h2>` + ROTE.map(r=>`<div class="li tap" data-go="haus/${r.haus}"><div class="grow"><div class="ttl">${esc(r.art)}</div><div class="sub">${esc(hname(r.haus))} · seit ${dde(r.seit)} · Frist ${dde(r.frist)} · ${esc(r.status)}</div></div>${CHEV}</div>`).join("") + `</div>`;
+ h += `<div class="card"><h2>Top-Prioritäten</h2>` + TOP10.slice(0,5).map((p,i)=>`<div class="li tap" data-go="haus/${p.haus}"><div class="sc t-x">${i+1}</div><div class="grow"><div class="ttl">${esc(p.thema)}</div><div class="sub">${esc(hname(p.haus))} · ${DLS[p.dl_id]} · Frist ${dde(p.frist)} · ${esc(p.owner)}</div></div>${CHEV}</div>`).join("") + `</div>`;
+ h += `<div class="card"><h2>SSG gesamt</h2><div class="kv">` + SSG.kpi.map(k=>`<div>${esc(k[0])}</div><div>${esc(k[1])}</div>`).join("") + `</div><p class="muted" style="margin-bottom:0">Cluster: ` + Object.entries(SSG.cluster).map(([k,v])=>`${k} ${v}`).join(" · ") + `</p></div>
+  <p class="muted" style="text-align:center">Alle Werte sind erfundene Beispieldaten.</p>`;
+ $("v-home").innerHTML = h;
+ if(installEvt) $("btnInstall").classList.remove("hidden");
+}
+function vHaeuser(){
+ const neu = new Set(deltas().map(d=>d.haus_id));
+ $("v-haeuser").innerHTML = `<p class="muted" style="margin:2px 4px 10px">Sortiert nach Haus-Score, Handlungsbedarf zuerst. Balken: Küche, Reinigung, Wäscherei, Technik, Empfang.</p><div class="card">` +
+  HOUSES.map(h=>`<div class="li tap" data-go="haus/${h.id}"><div class="sc t-${cls(h.score)}">${h.score}</div><div class="grow"><div class="ttl">${esc(hname(h.id))}${h.rl?' <span class="c-r">▲</span>':""}</div><div class="sub">${esc(h.cluster)} · ${trend(h.trend)}</div><div class="dots">${Object.values(h.dl).map(v=>`<i class="b-${cls(v)}"></i>`).join("")}</div></div>${neu.has(h.id)?'<span class="tag neu">neu</span>':""}${CHEV}</div>`).join("") + `</div>`;
+}
+function prioRow(p){ const st = p.status==="erledigt" ? '<span class="tag ok">erledigt</span>' : `<span class="tag">${esc(p.status||"offen")}</span>`;
+ return `<div class="li${p.neu||p.geaendert?" neu-row":""}"><div class="grow"><div style="font-weight:600;font-size:15px${p.status==="erledigt"?";text-decoration:line-through;color:var(--m)":""}">${esc(p.thema)}</div><div class="sub">${DLS[p.dl_id]||esc(p.dl_id)}${p.frist?" · Frist "+dde(p.frist):""}${p.owner?" · "+esc(p.owner):""}${p.kommentar?" · "+esc(p.kommentar):""}</div>${p.neu?neuTag(p.src):p.geaendert?`<span class="tag neu">geändert · ${esc(p.src)}</span>`:""}</div>${st}</div>`; }
+function vHaus(id){
+ const m = hausModell(id); if(!m){ go("haeuser"); return; }
+ const d = m.det;
+ let h = `<div class="card"><div class="hero">${ring(m.score,false,"Health Score")}<div style="flex:1;min-width:0">
+   <div style="font-size:19px;font-weight:700;line-height:1.2">${esc(m.name)}</div>
+   <div class="muted">${esc(m.id)} · ${esc(m.cluster)}${d?" · "+esc(d.typ):""}</div>
+   <div style="font-weight:650;margin:6px 0 2px"><span class="c-${m.trend<0?"r":"g"}">${trend(m.trend)}</span> · Abdeckung ${m.abd} %</div>
+   <div>${m.rote.length?`<span class="tag rl">${m.rote.length} rote Linie${m.rote.length>1?"n":""}</span>`:'<span class="tag ok">keine rote Linie</span>'} ${m.neu?`<span class="tag neu">${m.neu} Sprachnotiz${m.neu>1?"en":""}</span>`:""}</div></div></div>
+   ${d?`<div style="margin-top:12px">${dimBars(d.dims)}</div>`:""}
+   ${m.neu?`<p class="muted" style="margin:10px 0 0">Der Score wird beim nächsten Monatslauf aus der Datenmappe neu berechnet.</p>`:""}</div>`;
+ if(m.notes.length) h += `<div class="card"><h2>Besuchsnotizen</h2>` + m.notes.slice().reverse().map(n=>`<div class="li neu-row"><div class="grow"><div style="font-weight:600">Besuch ${dde(n.datum)} <span class="tag">${esc(n.typ||"")}</span></div>${n.satz?`<div class="small">${esc(n.satz)}</div>`:""}${n.schritt?`<div class="sub">Nächster Schritt: ${esc(n.schritt)}</div>`:""}</div></div>`).join("") + m.hinweise.map(x=>`<p class="muted" style="margin:6px 0 0">${esc(x)}</p>`).join("") + `</div>`;
+ h += `<div class="card"><h2>Prioritäten</h2>` + (m.prios.length ? m.prios.map(prioRow).join("") : '<div class="empty">Keine Prio 1 im Monatsreport.</div>') + `</div>`;
+ if(m.rote.length) h += `<div class="card"><h2>Rote Linien</h2>` + m.rote.map(r=>`<div class="li${r.neu?" neu-row":""}"><div class="grow"><div style="font-weight:600" class="c-r">${esc(r.art)}</div><div class="sub">${DLS[r.dl_id]||""}${r.seit?" · seit "+dde(r.seit):""}${r.frist?" · Frist "+dde(r.frist):""}${r.status?" · "+esc(r.status):""}</div>${r.neu?neuTag(r.src):""}</div></div>`).join("") + `</div>`;
+ // Dienstleistungen
+ h += `<div class="card"><h2>Dienstleistungen</h2>`;
+ for(const k of ["DL1","DL2","DL3","DL4","DL5"]){
+  const v = m.dl[k], x = d ? d.dl[k] : null, hasNeu = x && (x.eindruckNeu || (x.zusatz||[]).length || x.kpi.some(q=>q.neu));
+  const sub = v===F ? "fremd vergeben" : v==null ? "nicht angeboten" : (x&&x.hinweis ? x.hinweis : "Teil-Score");
+  h += `<details class="dl"${hasNeu?" open":""}><summary><div class="sc t-${cls(v)}">${typeof v==="number"?v:"–"}</div><div style="flex:1;min-width:0"><div style="font-weight:600">${DL[k]}</div><div class="sub">${esc(sub)}</div></div>${hasNeu?'<span class="tag neu">neu</span>':""}${x?CHEV:""}</summary>`;
+  if(x){ h += `<div class="body">`;
+   if(x.status==="fremd") h += `<div class="muted">${esc(x.partner||"")}</div>`;
+   else { h += `<div class="kv" style="margin-bottom:8px"><div>Team</div><div>${esc(x.team)}</div><div>Betrieb</div><div style="font-weight:500">${esc(x.betrieb)}</div><div>Equipment</div><div style="font-weight:500">${esc(x.equipment)}</div><div>Leistungsverzeichnis</div><div style="font-weight:500">${esc(x.lv)}</div>
+     <div>Besuchseindruck${x.eindruckNeu?" "+neuTag(x.eindruckSrc):""}</div><div>${x.eindruckNeu&&x.eindruckAlt!==x.eindruck?`<span class="alt">${x.eindruckAlt} / 5</span> `:""}<span${x.eindruckNeu?' style="color:var(--neu)"':""}>${x.eindruck} / 5</span></div></div>`;
+    for(const z of x.zusatz||[]) h += `<div class="li neu-row"><div class="grow"><div class="sub">${esc(z.k)}</div><div style="font-weight:600">${esc(z.v)}</div>${neuTag(z.src)}</div></div>`;
+    h += `<div class="kv" style="margin-top:8px">` + x.kpi.map(q=>`<div>${esc(q.name)}${q.neu?" "+neuTag(q.src):""}</div><div>${q.neu?`<span class="alt">${esc(q.alt)}</span> `:""}<span${q.neu?' style="color:var(--neu)"':""}>${esc(q.wert)}</span> <span class="muted">${esc(q.einheit)}</span></div>`).join("") + `</div>`; }
+   h += `</div>`; }
+  h += `</details>`;
+ }
+ h += `</div>`;
+ if(m.mw.length) h += `<div class="card"><h2>Neue Messwerte</h2>` + m.mw.map(w=>`<div class="li neu-row"><div class="grow"><div style="font-weight:600">${esc(w.name)}: ${num(w.wert)}</div><div class="sub">${esc(w.kpi_id)} · ${dde(w.monat)}${w.kommentar?" · "+esc(w.kommentar):""}</div>${neuTag(w.src)}</div></div>`).join("") + `</div>`;
+ if(m.ap.length) h += `<div class="card"><h2>Ansprechpartner</h2>` + m.ap.map(a=>`<div class="li${a.neu?" neu-row":""}"><div class="grow"><div style="font-weight:600${a.abgeloest?";text-decoration:line-through;color:var(--m)":""}">${esc(a.rolle)}: ${esc(a.name)}</div><div class="sub">${esc(a.seite)}${a.seit?" · seit "+dde(a.seit):""}${a.abgeloest?" · abgelöst":""}${a.hinweis_beruflich?" · "+esc(a.hinweis_beruflich):""}</div>${a.neu?neuTag(a.src):""}</div></div>`).join("") + `</div>`;
+ if(d){
+  h += `<div class="card"><h2>Kennzahlen Haus</h2><div class="kv">` + d.kpi.map(k=>`<div>${esc(k[0])}</div><div>${esc(k[1])}</div>`).join("") + `</div></div>`;
+  h += `<div class="card"><h2>Good to know</h2>` + m.gtk.map(g=>`<div class="li${g.neu?" neu-row":""}"><div class="grow"><div class="sub">${esc(g.k)}</div><div class="small">${esc(g.v)}</div>${g.neu?neuTag(g.src):""}</div></div>`).join("") + `</div>`;
+  h += `<div class="card"><h2>Stammdaten</h2><div class="kv"><div>Plätze (stat. / KZP / TP / SW)</div><div>${esc(d.plaetze)}</div><div>Belegung</div><div>${esc(d.belegung)}</div><div>Zimmer</div><div>${esc(d.zimmer)}</div><div>Fläche</div><div style="font-weight:500">${esc(d.flaeche)}</div><div>Baujahr / Sanierung</div><div>${esc(d.baujahr)}</div><div>Küche</div><div style="font-weight:500">${esc(d.kueche)}</div>
+   <div>Letzter Besuch</div><div${m.letzterNeu?' style="color:var(--neu)"':""}>${dde(m.letzter)}</div><div>Nächster Besuch</div><div${m.naechsterNeu?' style="color:var(--neu)"':""}>${dde(m.naechster)}</div></div></div>`;
+ } else {
+  h += `<div class="card"><div class="kv"><div>Plätze</div><div>${esc(m.plaetze)}</div>${m.letzter?`<div>Letzter Besuch</div><div style="color:var(--neu)">${dde(m.letzter)}</div>`:""}${m.naechsterNeu?`<div>Nächster Besuch</div><div style="color:var(--neu)">${dde(m.naechster)}</div>`:""}</div>`
+   + m.gtk.map(g=>`<div class="li neu-row"><div class="grow"><div class="sub">${esc(g.k)}</div><div class="small">${esc(g.v)}</div>${neuTag(g.src)}</div></div>`).join("")
+   + `<p class="muted" style="margin-bottom:0">Im Beispiel ist der volle Steckbrief nur für ${esc(hname("H02"))} hinterlegt. Für dieses Haus zeigt die App die Werte aus dem Monatsreport.</p></div>`;
+ }
+ h += `<button class="cta" data-notiz="${esc(id)}">${MIC} Sprachnotiz zu diesem Haus</button>`;
+ $("v-haus").innerHTML = h;
+ const f = $("v-haus").querySelector(".neu-row");
+ if(f && vHaus.scrollNeu){ vHaus.scrollNeu=false; setTimeout(()=>f.scrollIntoView({behavior:"smooth",block:"center"}),250); }
+}
+function vGewerke(){
+ $("v-gewerke").innerHTML = `<p class="muted" style="margin:2px 4px 10px">Gewerk-Score über alle Häuser, plätzegewichtet. Antippen zeigt die Häuser im Vergleich.</p><div class="tiles">` +
+  Object.entries(SSG.gewerk).map(([k,v])=>`<div class="tile tap" data-go="gewerk/${k}"><div class="row">${ring(v,true)}<div class="grow"><div style="font-weight:650">${DLS[k]}</div><span>${HOUSES.filter(h=>typeof h.dl[k]==="number").length} Häuser eigen</span></div></div></div>`).join("") +
+  `</div><div class="card" style="margin-top:12px"><h2>So entsteht der Score</h2><div class="kv"><div>Wirtschaft</div><div>25 %</div><div>Qualität & Pflicht</div><div>35 %</div><div>Personal</div><div>20 %</div><div>Kunde & Stimmung</div><div>20 %</div></div>
+  <p class="muted" style="margin-bottom:0">Skala 0 bis 100: grün ab 80, gelb 50 bis 79, rot unter 50. Eine offene rote Linie deckelt den Haus-Score auf 59. Unter 50 % Datenabdeckung gibt es keinen Score.</p></div>`;
+}
+function vGewerk(k){
+ if(!SSG.gewerk[k]){ go("gewerke"); return; }
+ const eig = HOUSES.filter(h=>typeof h.dl[k]==="number").sort((a,b)=>a.dl[k]-b.dl[k]);
+ const fr = HOUSES.filter(h=>h.dl[k]===F).length, na = HOUSES.filter(h=>h.dl[k]==null).length;
+ let h = `<div class="card"><div class="hero">${ring(SSG.gewerk[k],false,"Gewerk-Score")}<div><div style="font-size:19px;font-weight:700">${DL[k]}</div><div class="muted">${eig.length} Häuser eigen${fr?" · "+fr+" fremd":""}${na?" · "+na+" nicht angeboten":""}</div><div class="muted">Datenstand ${dde(DATENSTAND)}</div></div></div></div>`;
+ if(ZIEL[k]) h += `<div class="card"><h2>Zielkorridore (v1, Richtwerte)</h2><div class="kv">` + ZIEL[k].map(z=>`<div>${esc(z[0])}</div><div style="font-weight:500">${esc(z[1])}</div>`).join("") + `</div></div>`;
+ h += `<div class="card"><h2>Häuser im Vergleich</h2>` + eig.map(x=>`<div class="li tap" data-go="haus/${x.id}"><div class="sc t-${cls(x.dl[k])}">${x.dl[k]}</div><div class="grow"><div class="ttl">${esc(hname(x.id))}</div><div class="bar" style="margin-top:5px"><i class="b-${cls(x.dl[k])}" style="width:${x.dl[k]}%"></i></div></div>${CHEV}</div>`).join("") + `</div>`;
+ $("v-gewerk").innerHTML = h;
+}
+function vDaten(){
+ const n = deltas().length, key = !!store.get(LS.key);
+ $("v-daten").innerHTML = `<div class="card"><h2>Der Weg einer Sprachnotiz</h2><div class="steps">
+   <div class="step"><div><b>Sprechen</b><span class="small">Die Spracherkennung des Browsers wandelt Sprache in Text um. Bei Chrome auf Android läuft das in der Regel über Server von Google.</span></div></div>
+   <div class="step"><div><b>Strukturieren</b><span class="small">Der Text geht verschlüsselt an die Claude-Schnittstelle von Anthropic und kommt als geordnete Liste zurück: Ansprechpartner, Maßnahmen, Messwerte, To-dos.</span></div></div>
+   <div class="step"><div><b>Prüfen</b><span class="small">Jeder Punkt ist ein Vorschlag. Erst nach der Freigabe am Handy wird etwas übernommen.</span></div></div>
+   <div class="step"><div><b>Speichern</b><span class="small">Die übernommene Notiz liegt nur im Speicher dieser App auf diesem Gerät. Es gibt keinen eigenen Server und keine Cloud-Ablage.</span></div></div>
+   <div class="step"><div><b>Weitergeben</b><span class="small">Über „Exportieren“ entsteht eine Datei je Besuch. Sie wird später in die zentrale Datenmappe eingelesen, zum Beispiel auf einem Rechner oder Server des Trägers.</span></div></div>
+  </div></div>
+  <div class="card"><h2>Auf diesem Gerät</h2><div class="kv"><div>Übernommene Sprachnotizen</div><div>${n}</div><div>API-Schlüssel hinterlegt</div><div>${key?"ja":"nein"}</div><div>Steckbrief- und Reportdaten</div><div>Beispieldaten</div><div>App-Stand</div><div>${VERSION}</div></div>
+   ${n?`<button class="btn sec" id="btnExportAll" style="margin-top:12px">Alle Notizen als Datei exportieren</button>`:""}</div>
+  <div class="card"><h2>Regeln für das Diktat</h2><p class="small" style="margin:0">Diktiert werden nur Haus, Gewerk, dienstliche Ansprechpartner, Zahlen und Maßnahmen. Keine Bewohnerinnen und Bewohner, keine Gesundheitsangaben über Personen.</p></div>`;
+ const b = $("btnExportAll"); if(b) b.onclick = ()=>shareFile(deltas(), `deltas_${today()}.json`);
+}
+
+// =====================================================================
+// Navigation (Hash-Routing, damit die Zurück-Taste funktioniert)
+// =====================================================================
+const TITLES = { home:"SSG Cockpit", haeuser:"Häuser", haus:"Steckbrief", gewerke:"Gewerke", gewerk:"Gewerk", notiz:"Sprachnotiz", daten:"Daten", settings:"Einstellungen" };
+function go(path){ if(location.hash==="#"+path) route(); else location.hash = path; }
+function route(){
+ const [v,arg] = (location.hash.replace(/^#/,"")||"home").split("/");
+ const view = TITLES[v] ? v : "home";
+ if(view!=="notiz") stopMic();
+ ({home:vHome,haeuser:vHaeuser,haus:()=>vHaus(arg),gewerke:vGewerke,gewerk:()=>vGewerk(arg),daten:vDaten,settings:loadSettings,notiz:()=>{}})[view]();
+ document.querySelectorAll(".view").forEach(s=>s.classList.toggle("on", s.id==="v-"+view));
+ document.querySelectorAll("nav button").forEach(b=>b.classList.toggle("on", b.dataset.go===view || (view==="haus"&&b.dataset.go==="haeuser") || (view==="gewerk"&&b.dataset.go==="gewerke")));
+ $("title").textContent = view==="haus" ? hname(arg) : view==="gewerk" ? (DLS[arg]||"Gewerk") : TITLES[view];
+ $("btnBack").style.display = ["haus","gewerk","settings"].includes(view) ? "flex" : "none";
+ window.scrollTo(0,0);
+}
+document.addEventListener("click", ev=>{
+ const n = ev.target.closest("[data-notiz]"); if(n){ $("haus").value=n.dataset.notiz; saveDraft(); go("notiz"); return; }
+ const g = ev.target.closest("[data-go]"); if(g) go(g.dataset.go);
+});
+
+// =====================================================================
+// Einstellungen und Entwurf
+// =====================================================================
+function fillHaeuser(){ const sel=$("haus"), cur=sel.value; sel.innerHTML=""; for(const h of haeuser()){ const o=document.createElement("option"); o.value=h.id; o.textContent=h.id+" "+h.name; sel.appendChild(o); } if(cur) sel.value=cur; }
+function loadSettings(){ $("apiKey").value=store.get(LS.key)||""; $("model").value=store.get(LS.model)||"claude-sonnet-5-5"; $("erfasser").value=store.get(LS.erf)||"MM"; $("haeuser").value=store.get(LS.haeuser)||HAEUSER_DEFAULT; $("version").textContent="SSG Cockpit · Stand "+VERSION; }
+function saveSettings(){ store.set(LS.key,$("apiKey").value.trim()); store.set(LS.model,$("model").value); store.set(LS.erf,$("erfasser").value.trim()||"MM"); store.set(LS.haeuser,$("haeuser").value.trim()||HAEUSER_DEFAULT); fillHaeuser(); toast("Einstellungen gespeichert"); history.back(); }
+function saveDraft(){ store.set(LS.draft, JSON.stringify({haus:$("haus").value,datum:$("datum").value,typ:$("typ").value,text:$("text").value})); }
+function loadDraft(){ try{ const d=JSON.parse(store.get(LS.draft)||"null"); if(d){ if(d.haus) $("haus").value=d.haus; $("datum").value=d.datum||today(); $("typ").value=d.typ||"Einzel"; $("text").value=d.text||""; } }catch(e){} }
+
+// =====================================================================
 // Spracherkennung (Web Speech API; auf Android Chrome vorhanden)
-// ---------------------------------------------------------------
+// =====================================================================
 let rec=null, recOn=false, baseText="";
 function initMic(){
-  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if(!SR){ $("btnMic").disabled=true; showStatus($("micStatus"),"Keine Spracherkennung im Browser. Mikrofon-Taste der Tastatur im Textfeld nutzen.","warn"); return; }
-  rec = new SR(); rec.lang="de-DE"; rec.continuous=true; rec.interimResults=true;
-  rec.onresult = ev => {
-    let fin="", interim="";
-    for(let i=0;i<ev.results.length;i++){ const r=ev.results[i]; if(r.isFinal) fin+=r[0].transcript+" "; else interim+=r[0].transcript; }
-    $("text").value = (baseText+" "+fin+interim).replace(/\s+/g," ").trim(); saveDraft();
-  };
-  rec.onerror = ev => { showStatus($("micStatus"),"Mikrofon: "+ev.error+". Alternativ Tastatur-Diktat nutzen.","warn"); stopMic(); };
-  rec.onend = () => { if(recOn){ try{ rec.start(); }catch(e){ stopMic(); } } };
+ const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+ if(!SR){ $("btnMic").disabled=true; showStatus($("micStatus"),"Keine Spracherkennung im Browser. Mikrofon-Taste der Tastatur im Textfeld nutzen.","warn"); return; }
+ rec = new SR(); rec.lang="de-DE"; rec.continuous=true; rec.interimResults=true;
+ rec.onresult = ev => { let fin="", interim=""; for(let i=0;i<ev.results.length;i++){ const r=ev.results[i]; if(r.isFinal) fin+=r[0].transcript+" "; else interim+=r[0].transcript; } $("text").value=(baseText+" "+fin+interim).replace(/\s+/g," ").trim(); demoArmed=false; saveDraft(); };
+ rec.onerror = ev => { showStatus($("micStatus"),"Mikrofon: "+ev.error+". Alternativ Tastatur-Diktat nutzen.","warn"); stopMic(true); };
+ rec.onend = () => { if(recOn){ try{ rec.start(); }catch(e){ stopMic(); } } };
 }
 function startMic(){ if(!rec) return; baseText=$("text").value; recOn=true; $("btnMic").textContent="■ Stopp"; $("btnMic").classList.add("rec"); showStatus($("micStatus"),"Aufnahme läuft, frei sprechen.","ok"); try{ rec.start(); }catch(e){} }
-function stopMic(){ recOn=false; if(rec){ try{ rec.stop(); }catch(e){} } $("btnMic").textContent="🎤 Aufnahme"; $("btnMic").classList.remove("rec"); hideStatus($("micStatus")); }
+function stopMic(keepMsg){ if(!recOn && !rec) return; recOn=false; if(rec){ try{ rec.stop(); }catch(e){} } $("btnMic").textContent="Aufnahme"; $("btnMic").classList.remove("rec"); if(!keepMsg) hideStatus($("micStatus")); }
 
-// ---------------------------------------------------------------
-// API-Aufruf
-// ---------------------------------------------------------------
+// =====================================================================
+// Strukturieren: Claude-API oder vorbereitetes Beispiel
+// =====================================================================
+function mkDelta(hausId, datum, text, modell, input){ return { schema:"ssg-besuchsdelta-v1", haus_id:hausId, haus_name:hname(hausId), datum, typ:$("typ").value, erfasser:store.get(LS.erf)||"MM", erstellt:new Date().toISOString(), modell, freitext:text, ...clone(input) }; }
+function demoEinsetzen(){
+ stopMic(); $("haus").value=DEMO_HAUS; $("datum").value=DEMO_DATUM; $("typ").value="Einzel"; $("result").classList.add("hidden"); delta=null;
+ const ta=$("text"); ta.value=""; let i=0; $("btnDemo").disabled=true;
+ const t=setInterval(()=>{ i+=4; ta.value=DEMO_TEXT.slice(0,i); ta.scrollTop=ta.scrollHeight; if(i>=DEMO_TEXT.length){ clearInterval(t); ta.value=DEMO_TEXT; demoArmed=true; $("btnDemo").disabled=false; saveDraft(); showStatus($("status"),"Beispieldiktat eingesetzt. Weiter mit „Strukturieren“.","ok"); } }, 16);
+}
 async function strukturieren(){
-  const key=localStorage.getItem(LS.key); if(!key){ $("settings").classList.remove("hidden"); showStatus($("status"),"Bitte zuerst den API-Key eintragen.","warn"); return; }
-  const text=$("text").value.trim(); if(text.length<10){ showStatus($("status"),"Freitext ist leer.","warn"); return; }
-  const hausId=$("haus").value, hausName=(haeuser().find(h=>h.id===hausId)||{}).name||"", datum=$("datum").value||today();
-  stopMic(); $("btnRun").disabled=true; showStatus($("status"),"Wird strukturiert…","ok");
-  try{
-    const body={ model:localStorage.getItem(LS.model)||"claude-sonnet-5-5", max_tokens:4096,
-      system:systemPrompt(hausId,hausName,datum), tools:[TOOL], tool_choice:{type:"auto"},
-      messages:[{role:"user",content:"Sprachnotiz:\n\n"+text}] };
-    const r=await fetch("https://api.anthropic.com/v1/messages",{ method:"POST",
-      headers:{ "content-type":"application/json","x-api-key":key,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true" },
-      body:JSON.stringify(body) });
-    if(!r.ok){ const t=await r.text(); throw new Error("API "+r.status+": "+t.slice(0,300)); }
-    const j=await r.json();
-    let input=null;
-    const tu=(j.content||[]).find(c=>c.type==="tool_use");
-    if(tu){ input=tu.input; }
-    else {
-      // Fallback: Modell hat Text geliefert; JSON-Objekt daraus ziehen
-      const txt=(j.content||[]).filter(c=>c.type==="text").map(c=>c.text).join("\n");
-      const m=txt.match(/\{[\s\S]*\}/);
-      if(m){ try{ input=JSON.parse(m[0]); }catch(e){} }
-      if(!input) throw new Error("Keine strukturierte Antwort erhalten. Antwort: "+txt.slice(0,200));
-    }
-    for(const k of ["ansprechpartner","prios","prio_updates","rote_linien","messwerte","leistung","todos","rueckfragen"]) if(!Array.isArray(input[k])) input[k]=[];
-    input.besuch=input.besuch||{}; input.einrichtung=input.einrichtung||{};
-    delta = { schema:"ssg-besuchsdelta-v1", haus_id:hausId, haus_name:hausName, datum, typ:$("typ").value,
-      erfasser:localStorage.getItem(LS.erf)||"MM", erstellt:new Date().toISOString(), modell:body.model, freitext:text, ...input };
-    renderDelta(); showStatus($("status"),"Vorschlag erstellt. Bitte prüfen.","ok");
-  }catch(e){ showStatus($("status"),"Fehler: "+e.message,"err"); }
-  finally{ $("btnRun").disabled=false; }
+ const text=$("text").value.trim(); if(text.length<10){ showStatus($("status"),"Freitext ist leer.","warn"); return; }
+ const hausId=$("haus").value, datum=$("datum").value||today();
+ stopMic();
+ if(demoArmed && text===DEMO_TEXT && hausId===DEMO_HAUS){
+  $("btnRun").disabled=true; showStatus($("status"),"Wird strukturiert…","ok");
+  await new Promise(r=>setTimeout(r,700));
+  delta = mkDelta(hausId, datum, text, "beispiel", DEMO_DELTA); renderDelta(); $("btnRun").disabled=false;
+  showStatus($("status"),"Vorbereitetes Beispielergebnis (ohne Internet). Bitte prüfen.","ok"); return;
+ }
+ const key=store.get(LS.key); if(!key){ showStatus($("status"),"Für eigenes Diktat bitte zuerst den API-Key in den Einstellungen eintragen.","warn"); go("settings"); return; }
+ $("btnRun").disabled=true; showStatus($("status"),"Wird strukturiert…","ok");
+ try{
+  const body={ model:store.get(LS.model)||"claude-sonnet-5-5", max_tokens:4096, system:systemPrompt(hausId,hname(hausId),datum), tools:[TOOL], tool_choice:{type:"tool",name:"besuchsdelta"}, messages:[{role:"user",content:"Sprachnotiz:\n\n"+text}] };
+  const r=await fetch("https://api.anthropic.com/v1/messages",{ method:"POST", headers:{ "content-type":"application/json","x-api-key":key,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true" }, body:JSON.stringify(body) });
+  if(!r.ok){ const t=await r.text(); throw new Error("API "+r.status+": "+t.slice(0,300)); }
+  const j=await r.json(); const tu=(j.content||[]).find(c=>c.type==="tool_use"); if(!tu) throw new Error("Keine strukturierte Antwort erhalten.");
+  delta = mkDelta(hausId, datum, text, body.model, tu.input); renderDelta(); showStatus($("status"),"Vorschlag erstellt. Bitte prüfen.","ok");
+ }catch(e){ showStatus($("status"),"Fehler: "+e.message+" (Ohne Netz: Beispieldiktat nutzen.)","err"); }
+ finally{ $("btnRun").disabled=false; }
 }
 
-// ---------------------------------------------------------------
-// Darstellung der erkannten Punkte, editierbar, mit An/Aus je Punkt
-// ---------------------------------------------------------------
+// =====================================================================
+// Erkannte Punkte: editierbar, mit An/Aus je Punkt
+// =====================================================================
 const FIELDS = {
-  ansprechpartner:[["seite","select",["Kunde","SSG"]],["rolle","text"],["name","text"],["seit","text"],["hinweis_beruflich","text"],["ersetzt_vorgaenger","check"]],
-  prios:[["dl_id","select",["Haus","DL1","DL2","DL3","DL4","DL5","DL6"]],["thema","text"],["prio","select",[1,2,3]],["frist","date"],["owner","text"],["status","select",["offen","laeuft","geplant"]],["kommentar","text"]],
-  prio_updates:[["thema_suche","text"],["status","select",["offen","laeuft","geplant","erledigt"]],["kommentar","text"]],
-  rote_linien:[["dl_id","select",["DL1","DL2","DL3","DL4","DL5","DL6"]],["art","select",["Prueffrist","Hygiene","Auflage","Vakanz"]],["seit","text"],["frist","date"],["status","text"],["kommentar","text"]],
-  messwerte:[["kpi_id","select",KPI.map(k=>k[0])],["dl_id","text"],["monat","text"],["wert","number"],["kommentar","text"]],
-  leistung:[["dl_id","select",["DL1","DL2","DL3","DL4","DL5","DL6"]],["status","select",["","eigen","teilweise","fremd","nicht angeboten"]],["partner","text"],["leitung_vor_ort","text"],["equipment","text"],["systeme","text"],["hinweis","text"]],
-  todos:[["text","text"],["faellig","date"],["owner","text"],["bezug_dl","text"]]
+ ansprechpartner:[["seite","select",["Kunde","SSG"]],["rolle","text"],["name","text"],["seit","text"],["hinweis_beruflich","text"],["ersetzt_vorgaenger","check"]],
+ prios:[["dl_id","select",["Haus","DL1","DL2","DL3","DL4","DL5","DL6"]],["thema","text"],["prio","select",[1,2,3]],["frist","date"],["owner","text"],["status","select",["offen","laeuft","geplant"]],["kommentar","text"]],
+ prio_updates:[["thema_suche","text"],["status","select",["offen","laeuft","geplant","erledigt"]],["kommentar","text"]],
+ rote_linien:[["dl_id","select",["DL1","DL2","DL3","DL4","DL5","DL6"]],["art","select",["Prueffrist","Hygiene","Auflage","Vakanz"]],["seit","text"],["frist","date"],["status","text"],["kommentar","text"]],
+ messwerte:[["kpi_id","select",KPI.map(k=>k[0])],["dl_id","text"],["monat","text"],["wert","number"],["kommentar","text"]],
+ leistung:[["dl_id","select",["DL1","DL2","DL3","DL4","DL5","DL6"]],["status","select",["","eigen","teilweise","fremd","nicht angeboten"]],["partner","text"],["leitung_vor_ort","text"],["equipment","text"],["systeme","text"],["hinweis","text"]],
+ todos:[["text","text"],["faellig","date"],["owner","text"],["bezug_dl","text"]]
 };
-const TITLES = { ansprechpartner:"Ansprechpartner", prios:"Prios / Maßnahmen", prio_updates:"Bestehende Prios ändern", rote_linien:"Rote Linien", messwerte:"Messwerte", leistung:"Gewerk-Beobachtungen", todos:"Meine To-dos" };
-
+const SECT = { ansprechpartner:"Ansprechpartner", prios:"Prios / Maßnahmen", prio_updates:"Bestehende Prios ändern", rote_linien:"Rote Linien", messwerte:"Messwerte", leistung:"Gewerk-Beobachtungen", todos:"Meine To-dos" };
+const LABEL = {dl_id:"Gewerk",kpi_id:"Kennzahl",thema:"Thema",prio:"Prio",frist:"Frist",owner:"Owner",status:"Status",kommentar:"Kommentar",seite:"Seite",rolle:"Rolle",name:"Name",seit:"seit",hinweis_beruflich:"Hinweis (dienstlich)",ersetzt_vorgaenger:"neu in Rolle",thema_suche:"Suchbegriff",art:"Art",monat:"Monat",wert:"Wert",partner:"Partner",leitung_vor_ort:"Leitung vor Ort",equipment:"Equipment",systeme:"Systeme",hinweis:"Hinweis",text:"Aufgabe",faellig:"fällig",bezug_dl:"Bezug Gewerk"};
 function inputFor(kind, opts, val, onchange){
-  let el;
-  if(kind==="select"){ el=document.createElement("select"); for(const o of opts){ const op=document.createElement("option"); op.value=o; op.textContent=o===""?"(leer)":o; el.appendChild(op);} el.value=val==null?"":String(val); }
-  else if(kind==="check"){ el=document.createElement("input"); el.type="checkbox"; el.checked=!!val; el.style.width="auto"; }
-  else { el=document.createElement("input"); el.type=kind; el.value=val==null?"":val; }
-  el.addEventListener("input", ()=>onchange(kind==="check"?el.checked:(kind==="number"?(el.value===""?null:Number(el.value)):(kind==="select"&&opts.every(o=>typeof o==="number")?Number(el.value):el.value))));
-  return el;
+ let el;
+ if(kind==="select"){ el=document.createElement("select"); for(const o of opts){ const op=document.createElement("option"); op.value=o; op.textContent=o===""?"(leer)":o; el.appendChild(op);} el.value=val==null?"":String(val); }
+ else if(kind==="check"){ el=document.createElement("input"); el.type="checkbox"; el.checked=!!val; el.style.width="auto"; }
+ else { el=document.createElement("input"); el.type=kind; el.value=val==null?"":val; }
+ el.addEventListener("input", ()=>onchange(kind==="check"?el.checked:(kind==="number"?(el.value===""?null:Number(el.value)):(kind==="select"&&opts.length&&opts.every(o=>typeof o==="number")?Number(el.value):el.value))));
+ return el;
 }
-function labelFor(key){ return {dl_id:"Gewerk",kpi_id:"Kennzahl",thema:"Thema",prio:"Prio",frist:"Frist",owner:"Owner",status:"Status",kommentar:"Kommentar",seite:"Seite",rolle:"Rolle",name:"Name",seit:"seit",hinweis_beruflich:"Hinweis (dienstlich)",ersetzt_vorgaenger:"neu in Rolle",thema_suche:"Suchbegriff",art:"Art",monat:"Monat",wert:"Wert",partner:"Partner",leitung_vor_ort:"Leitung vor Ort",equipment:"Equipment",systeme:"Systeme",hinweis:"Hinweis",text:"Aufgabe",faellig:"fällig",bezug_dl:"Bezug Gewerk"}[key]||key; }
-
 function renderDelta(){
-  const root=$("cards"); root.innerHTML="";
-  $("result").classList.remove("hidden"); $("btnExport").classList.remove("hidden");
-  // Rückfragen
-  const rq=$("rueckfragen"); rq.innerHTML="";
-  if((delta.rueckfragen||[]).length){ const d=document.createElement("div"); d.className="status show warn"; d.innerHTML="<b>Rückfragen:</b><br>"+delta.rueckfragen.map(x=>"• "+esc(x)).join("<br>"); rq.appendChild(d); }
-  // Besuch
-  const b=delta.besuch||{}; const bc=document.createElement("div"); bc.className="item";
-  bc.innerHTML="<div class='top'><b>Besuch "+esc(delta.haus_id)+" · "+esc(delta.datum)+"</b><span class='tag'>"+esc(delta.typ)+"</span></div>";
-  const g=document.createElement("div"); g.className="grid3";
-  for(const dl of ["DL1","DL2","DL3","DL4","DL5"]){ const w=document.createElement("div"); const l=document.createElement("label"); l.textContent="Eindruck "+dl; w.appendChild(l); w.appendChild(inputFor("select",["",1,2,3,4,5],(b.eindruck||{})[dl]??"",v=>{ b.eindruck=b.eindruck||{}; b.eindruck[dl]=v===""?null:Number(v); sync(); })); g.appendChild(w); }
-  bc.appendChild(g);
-  for(const [k,lab] of [["satz_je_gewerk","Satz je Gewerk"],["naechster_schritt","Nächster Schritt"]]){ const l=document.createElement("label"); l.textContent=lab; bc.appendChild(l); const t=document.createElement("textarea"); t.value=b[k]||""; t.addEventListener("input",()=>{ b[k]=t.value; sync(); }); bc.appendChild(t); }
-  delta.besuch=b; root.appendChild(bc);
-  // Einrichtung
-  const e=delta.einrichtung||{}; const ec=document.createElement("div"); ec.className="item"; ec.innerHTML="<div class='top'><b>Einrichtung (Good to know, Stärken, Risiken)</b></div>";
-  for(const [k,lab] of [["good_to_know_praktisch","Praktisches"],["good_to_know_beziehung","Beziehung"],["staerken","Stärken"],["risiken","Risiken"],["naechster_besuch","Nächster Besuch (JJJJ-MM-TT)"]]){ const l=document.createElement("label"); l.textContent=lab; ec.appendChild(l); const t=document.createElement(k==="naechster_besuch"?"input":"textarea"); t.value=e[k]||""; t.addEventListener("input",()=>{ e[k]=t.value; sync(); }); ec.appendChild(t); }
-  delta.einrichtung=e; root.appendChild(ec);
-  // Listen
-  for(const sec of Object.keys(FIELDS)){
-    const arr=delta[sec]=delta[sec]||[]; const h=document.createElement("h2"); h.textContent=TITLES[sec]+" ("+arr.length+")"; h.style.marginTop="14px"; root.appendChild(h);
-    if(!arr.length){ const p=document.createElement("div"); p.className="empty"; p.textContent="nichts erkannt"; root.appendChild(p); }
-    arr.forEach((it,idx)=>{
-      if(it._aus===undefined) it._aus=false;
-      const d=document.createElement("div"); d.className="item"+(it._aus?" off":"");
-      const top=document.createElement("div"); top.className="top";
-      const title=document.createElement("b"); title.textContent=(it.thema||it.name||it.text||it.thema_suche||it.art||it.kpi_id||it.dl_id||"Eintrag");
-      const btn=document.createElement("button"); btn.textContent=it._aus?"Übernehmen":"Verwerfen"; btn.onclick=()=>{ it._aus=!it._aus; renderDelta(); };
-      top.appendChild(title); top.appendChild(btn); d.appendChild(top);
-      const grid=document.createElement("div"); grid.className="grid2";
-      for(const [key,kind,opts] of FIELDS[sec]){ const w=document.createElement("div"); const l=document.createElement("label"); l.textContent=labelFor(key); w.appendChild(l); w.appendChild(inputFor(kind,opts||[],it[key],v=>{ it[key]=v; sync(); })); grid.appendChild(w); }
-      d.appendChild(grid); root.appendChild(d);
-    });
-  }
-  sync();
+ const root=$("cards"); root.innerHTML=""; $("result").classList.remove("hidden");
+ const rq=$("rueckfragen"); rq.innerHTML="";
+ if((delta.rueckfragen||[]).length){ const d=document.createElement("div"); d.className="status show warn"; d.innerHTML="<b>Rückfragen:</b><br>"+delta.rueckfragen.map(x=>"• "+esc(x)).join("<br>"); rq.appendChild(d); }
+ const b=delta.besuch=delta.besuch||{}; const bc=document.createElement("div"); bc.className="item";
+ bc.innerHTML="<div class='top'><b>Besuch "+esc(hname(delta.haus_id))+" · "+esc(dde(delta.datum))+"</b><span class='tag'>"+esc(delta.typ)+"</span></div>";
+ const g=document.createElement("div"); g.className="grid3";
+ for(const dl of ["DL1","DL2","DL3","DL4","DL5"]){ const w=document.createElement("div"); const l=document.createElement("label"); l.textContent="Eindruck "+DLS[dl]; w.appendChild(l); w.appendChild(inputFor("select",["",1,2,3,4,5],(b.eindruck||{})[dl]??"",v=>{ b.eindruck=b.eindruck||{}; b.eindruck[dl]=v===""?null:Number(v); sync(); })); g.appendChild(w); }
+ bc.appendChild(g);
+ for(const [k,lab] of [["satz_je_gewerk","Satz je Gewerk"],["naechster_schritt","Nächster Schritt"]]){ const l=document.createElement("label"); l.textContent=lab; bc.appendChild(l); const t=document.createElement("textarea"); t.value=b[k]||""; t.addEventListener("input",()=>{ b[k]=t.value; sync(); }); bc.appendChild(t); }
+ root.appendChild(bc);
+ const e=delta.einrichtung=delta.einrichtung||{}; const ec=document.createElement("div"); ec.className="item"; ec.innerHTML="<div class='top'><b>Einrichtung (Good to know, Stärken, Risiken)</b></div>";
+ for(const [k,lab] of [["good_to_know_praktisch","Praktisches"],["good_to_know_beziehung","Beziehung"],["staerken","Stärken"],["risiken","Risiken"],["naechster_besuch","Nächster Besuch (JJJJ-MM-TT)"]]){ const l=document.createElement("label"); l.textContent=lab; ec.appendChild(l); const t=document.createElement(k==="naechster_besuch"?"input":"textarea"); t.value=e[k]||""; t.addEventListener("input",()=>{ e[k]=t.value; sync(); }); ec.appendChild(t); }
+ root.appendChild(ec);
+ for(const sec of Object.keys(FIELDS)){
+  const arr=delta[sec]=delta[sec]||[]; const h=document.createElement("div"); h.className="sech"; h.textContent=SECT[sec]+" ("+arr.length+")"; root.appendChild(h);
+  if(!arr.length){ const p=document.createElement("div"); p.className="empty"; p.textContent="nichts erkannt"; root.appendChild(p); }
+  arr.forEach(it=>{
+   if(it._aus===undefined) it._aus=false;
+   const d=document.createElement("div"); d.className="item"+(it._aus?" off":"");
+   const top=document.createElement("div"); top.className="top";
+   const title=document.createElement("b"); title.textContent=(it.thema||it.name||it.text||it.thema_suche||it.art||it.kpi_id||it.dl_id||"Eintrag");
+   const btn=document.createElement("button"); btn.textContent=it._aus?"Übernehmen":"Verwerfen"; btn.onclick=()=>{ it._aus=!it._aus; renderDelta(); };
+   top.appendChild(title); top.appendChild(btn); d.appendChild(top);
+   const grid=document.createElement("div"); grid.className="grid2";
+   for(const [key,kind,opts] of FIELDS[sec]){ const w=document.createElement("div"); const l=document.createElement("label"); l.textContent=LABEL[key]||key; w.appendChild(l); w.appendChild(inputFor(kind,opts||[],it[key],v=>{ it[key]=v; sync(); })); grid.appendChild(w); }
+   d.appendChild(grid); root.appendChild(d);
+  });
+ }
+ sync();
 }
-function esc(s){ return String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
-function exportObj(){
-  const out=JSON.parse(JSON.stringify(delta));
-  for(const sec of Object.keys(FIELDS)){ out[sec]=(out[sec]||[]).filter(x=>!x._aus).map(x=>{ delete x._aus; return x; }); }
-  return out;
-}
+function exportObj(){ const out=clone(delta); for(const sec of Object.keys(FIELDS)){ out[sec]=(out[sec]||[]).filter(x=>!x._aus).map(x=>{ delete x._aus; return x; }); } return out; }
 function sync(){ $("json").textContent=JSON.stringify(exportObj(),null,2); }
 
-// ---------------------------------------------------------------
-// Export: Datei teilen (Android: nach Drive/OneDrive) oder herunterladen
-// ---------------------------------------------------------------
-async function exportDelta(){
-  const out=exportObj(); const name=`delta_${out.haus_id}_${out.datum}_${Date.now().toString(36)}.json`;
-  const blob=new Blob([JSON.stringify(out,null,2)],{type:"application/json"});
-  const file=new File([blob],name,{type:"application/json"});
-  try{
-    if(navigator.canShare && navigator.canShare({files:[file]})){ await navigator.share({files:[file],title:name}); showStatus($("status"),"Delta geteilt: "+name,"ok"); return; }
-  }catch(e){ if(e.name==="AbortError") return; }
-  const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download=name; document.body.appendChild(a); a.click(); a.remove();
-  showStatus($("status"),"Delta heruntergeladen: "+name,"ok");
+// =====================================================================
+// Übernehmen (lokal speichern) und Export (Datei teilen)
+// =====================================================================
+function uebernehmen(){
+ if(!delta) return; const out=exportObj(); const all=deltas(); all.push(out); store.set(LS.deltas, JSON.stringify(all));
+ const id=out.haus_id; delta=null; demoArmed=false; $("result").classList.add("hidden"); $("text").value=""; saveDraft(); hideStatus($("status"));
+ vHaus.scrollNeu=true; go("haus/"+id); toast("In den Steckbrief übernommen");
 }
+async function shareFile(obj, name){
+ const blob=new Blob([JSON.stringify(obj,null,2)],{type:"application/json"}); const file=new File([blob],name,{type:"application/json"});
+ try{ if(navigator.canShare && navigator.canShare({files:[file]})){ await navigator.share({files:[file],title:name}); toast("Geteilt: "+name); return; } }catch(e){ if(e.name==="AbortError") return; }
+ const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download=name; document.body.appendChild(a); a.click(); a.remove(); toast("Heruntergeladen: "+name);
+}
+function exportDelta(){ const out=exportObj(); shareFile(out, `delta_${out.haus_id}_${out.datum}_${Date.now().toString(36)}.json`); }
+function resetDemo(){ if(!confirm("Alle übernommenen Sprachnotizen auf diesem Gerät entfernen?")) return; store.del(LS.deltas); store.del(LS.draft); delta=null; $("text").value=""; $("result").classList.add("hidden"); toast("Ausgangszustand wiederhergestellt"); go("home"); }
 
-// ---------------------------------------------------------------
+// =====================================================================
 // Start
-// ---------------------------------------------------------------
-window.addEventListener("DOMContentLoaded",()=>{
-  loadSettings(); fillHaeuser(); $("datum").value=today(); loadDraft(); initMic();
-  $("btnSettings").onclick=()=>$("settings").classList.toggle("hidden");
-  $("btnSaveSettings").onclick=saveSettings;
-  $("btnMic").onclick=()=>recOn?stopMic():startMic();
-  $("btnClear").onclick=()=>{ $("text").value=""; saveDraft(); };
-  $("btnRun").onclick=strukturieren;
-  $("btnExport").onclick=exportDelta;
-  for(const id of ["haus","datum","typ","text"]) $(id).addEventListener("input",saveDraft);
-  if(!localStorage.getItem(LS.key)) $("settings").classList.remove("hidden");
+// =====================================================================
+let installEvt=null;
+window.addEventListener("beforeinstallprompt", ev=>{ ev.preventDefault(); installEvt=ev; const b=$("btnInstall"); if(b) b.classList.remove("hidden"); });
+document.addEventListener("click", async ev=>{ if(ev.target.id==="btnInstall" && installEvt){ installEvt.prompt(); await installEvt.userChoice; installEvt=null; ev.target.classList.add("hidden"); } });
+window.addEventListener("hashchange", route);
+window.addEventListener("DOMContentLoaded", ()=>{
+ fillHaeuser(); $("datum").value=today(); loadDraft(); initMic();
+ $("btnSettings").onclick=()=>go("settings");
+ $("btnBack").onclick=()=>history.length>1 ? history.back() : go("home");
+ $("btnSaveSettings").onclick=saveSettings;
+ $("btnReset").onclick=resetDemo;
+ $("btnMic").onclick=()=>recOn?stopMic():startMic();
+ $("btnClear").onclick=()=>{ $("text").value=""; demoArmed=false; saveDraft(); };
+ $("btnDemo").onclick=demoEinsetzen;
+ $("btnRun").onclick=strukturieren;
+ $("btnApply").onclick=uebernehmen;
+ $("btnExport").onclick=exportDelta;
+ for(const id of ["haus","datum","typ","text"]) $(id).addEventListener("input",()=>{ if(id==="text") demoArmed=false; saveDraft(); });
+ route();
+ if("serviceWorker" in navigator && location.protocol==="https:") navigator.serviceWorker.register("sw.js").catch(()=>{});
 });
-// Für Tests: Delta von außen setzen
+// Für Tests
 window.__setDelta = d => { delta=d; renderDelta(); };
 window.__exportObj = exportObj;
 </script>
