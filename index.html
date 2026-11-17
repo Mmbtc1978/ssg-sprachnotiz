@@ -205,7 +205,7 @@
 
 <script>
 "use strict";
-const VERSION = "2026-11-17";
+const VERSION = "2026-11-17 b";
 // =====================================================================
 // Beispieldaten (erfunden) aus der SSG-Datenmappe, Datenstand 2027-03.
 // Hausnamen sind in dieser Fassung neutral; echte Namen lokal in den
@@ -357,7 +357,7 @@ function systemPrompt(hausId, hausName, datum){
  return `Du strukturierst Sprachnotizen der Geschäftsbereichsleitung Service & Versorgung der SSG (Caritas Altenhilfe) nach Hausbesuchen. Besuch: ${hausId} ${hausName}, Datum ${datum}.
 Gewerke: ${Object.entries(DL).map(([k,v])=>k+" = "+v).join("; ")}.
 Kennzahlen (ID, Name, Gewerk): ${KPI.map(k=>k.join(" ")).join("; ")}.
-Regeln: Nur aufnehmen, was im Text steht; keine Annahmen, keine Vervollständigung. Jede Zahl braucht eine passende Kennzahl, sonst gehört sie in rueckfragen. Relative Zeitangaben auf das Besuchsdatum beziehen. Personen nur mit dienstlicher Rolle; keine Bewohnerinnen oder Bewohner, keine Gesundheitsangaben über Personen. Vorname allein ohne Rolle: bei 'mit X sprechen' ist X Owner oder Todo-Bezug, kein Ansprechpartner. Text in deutscher Sprache, kurz, Faktenstil.`;
+Regeln: Nur aufnehmen, was im Text steht; keine Annahmen, keine Vervollständigung. Jede Zahl braucht eine passende Kennzahl, sonst gehört sie in rueckfragen. Relative Zeitangaben auf das Besuchsdatum beziehen. Personen nur mit dienstlicher Rolle; keine Bewohnerinnen oder Bewohner, keine Gesundheitsangaben über Personen. Vorname allein ohne Rolle: bei 'mit X sprechen' ist X Owner oder Todo-Bezug, kein Ansprechpartner. Text in deutscher Sprache, kurz, Faktenstil. Antworte ausschließlich mit genau einem Aufruf des Tools besuchsdelta, ohne begleitenden Text und ohne Rückfrage an den Nutzer; Unklares gehört in das Feld rueckfragen.`;
 }
 
 // =====================================================================
@@ -609,10 +609,10 @@ async function strukturieren(){
  const key=store.get(LS.key); if(!key){ showStatus($("status"),"Für eigenes Diktat bitte zuerst den API-Key in den Einstellungen eintragen.","warn"); go("settings"); return; }
  $("btnRun").disabled=true; showStatus($("status"),"Wird strukturiert…","ok");
  try{
-  const body={ model:store.get(LS.model)||"claude-sonnet-5-5", max_tokens:4096, system:systemPrompt(hausId,hname(hausId),datum), tools:[TOOL], tool_choice:{type:"tool",name:"besuchsdelta"}, messages:[{role:"user",content:"Sprachnotiz:\n\n"+text}] };
+  const body={ model:store.get(LS.model)||"claude-sonnet-5-5", max_tokens:4096, system:systemPrompt(hausId,hname(hausId),datum), tools:[TOOL], tool_choice:{type:"auto"}, messages:[{role:"user",content:"Sprachnotiz:\n\n"+text}] };
   const r=await fetch("https://api.anthropic.com/v1/messages",{ method:"POST", headers:{ "content-type":"application/json","x-api-key":key,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true" }, body:JSON.stringify(body) });
   if(!r.ok){ const t=await r.text(); throw new Error("API "+r.status+": "+t.slice(0,300)); }
-  const j=await r.json(); const tu=(j.content||[]).find(c=>c.type==="tool_use"); if(!tu) throw new Error("Keine strukturierte Antwort erhalten.");
+  const j=await r.json(); const tu=(j.content||[]).find(c=>c.type==="tool_use"); if(!tu) throw new Error("Keine strukturierte Antwort erhalten. Bitte noch einmal auf Strukturieren tippen.");
   delta = mkDelta(hausId, datum, text, body.model, tu.input); renderDelta(); showStatus($("status"),"Vorschlag erstellt. Bitte prüfen.","ok");
  }catch(e){ showStatus($("status"),"Fehler: "+e.message+" (Ohne Netz: Beispieldiktat nutzen.)","err"); }
  finally{ $("btnRun").disabled=false; }
