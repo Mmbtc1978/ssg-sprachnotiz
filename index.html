@@ -186,6 +186,17 @@
    <button class="btn" id="btnSaveSettings">Speichern</button>
   </div>
   <div class="card">
+   <h2>Datenpaket (Sicherung und Gerätewechsel)</h2>
+   <p class="muted" style="margin-top:0">Sichert Häuser, Erfasser, Modell, Entwurf und alle Sprachnotizen verschlüsselt in eine Datei, z. B. für dein privates OneDrive unter <b>SSG-Cockpit</b>. Der API-Key kommt nie ins Paket. Ohne Passphrase ist die Datei nicht lesbar, und vergessene Passphrasen lassen sich nicht wiederherstellen.</p>
+   <label>Passphrase (mindestens 10 Zeichen)</label>
+   <input id="dpPass" type="password" autocomplete="new-password">
+   <button class="btn" id="btnDpSave" style="margin-top:10px">Datenpaket sichern</button>
+   <label style="margin-top:14px">Datenpaket laden (.ssg)</label>
+   <input id="dpFile" type="file" accept=".ssg,application/json">
+   <button class="btn sec" id="btnDpLoad" style="margin-top:8px">Laden und übernehmen</button>
+   <p class="muted" id="dpStatus"></p>
+  </div>
+  <div class="card">
    <h2>Vorführung</h2>
    <p class="muted" style="margin-top:0">Entfernt alle übernommenen Sprachnotizen und stellt den Ausgangszustand der Beispieldaten wieder her. API-Key und Einstellungen bleiben erhalten.</p>
    <button class="btn warn" id="btnReset">Sprachnotizen zurücksetzen</button>
@@ -205,7 +216,7 @@
 
 <script>
 "use strict";
-const VERSION = "2026-11-17 b";
+const VERSION = "2026-11-25 a";
 // =====================================================================
 // Beispieldaten (erfunden) aus der SSG-Datenmappe, Datenstand 2027-03.
 // Hausnamen sind in dieser Fassung neutral; echte Namen lokal in den
@@ -716,6 +727,65 @@ window.addEventListener("DOMContentLoaded", ()=>{
 // Für Tests
 window.__setDelta = d => { delta=d; renderDelta(); };
 window.__exportObj = exportObj;
+</script>
+<script>
+"use strict";
+// =====================================================================
+// Datenpaket: verschlüsselte Sicherung aller Arbeitsdaten (ohne API-Key)
+// Format ssg-datenpaket-v1: PBKDF2-SHA256 (310.000 Runden) -> AES-GCM 256
+// =====================================================================
+const DP = {
+ FORMAT:"ssg-datenpaket-v1", ITER:310000,
+ KEYS:{ erfasser:"ssg_erfasser", haeuser:"ssg_haeuser", model:"ssg_model", draft:"ssg_draft", deltas:"ssg_deltas" },
+ b64(buf){ let s=""; const u=new Uint8Array(buf); for(let i=0;i<u.length;i++) s+=String.fromCharCode(u[i]); return btoa(s); },
+ unb64(t){ const s=atob(t), u=new Uint8Array(s.length); for(let i=0;i<s.length;i++) u[i]=s.charCodeAt(i); return u; },
+ async key(pass, salt, iter){
+  const base=await crypto.subtle.importKey("raw", new TextEncoder().encode(pass), "PBKDF2", false, ["deriveKey"]);
+  return crypto.subtle.deriveKey({name:"PBKDF2", hash:"SHA-256", salt, iterations:iter}, base, {name:"AES-GCM", length:256}, false, ["encrypt","decrypt"]);
+ },
+ sammeln(){ const d={}; for(const [n,k] of Object.entries(DP.KEYS)){ const v=store.get(k); if(v!==null) d[n]=v; } return d; },
+ async packen(pass){
+  const salt=crypto.getRandomValues(new Uint8Array(16)), iv=crypto.getRandomValues(new Uint8Array(12));
+  const inhalt={ schema:DP.FORMAT, erstellt:new Date().toISOString(), app_version:VERSION, daten:DP.sammeln() };
+  const ct=await crypto.subtle.encrypt({name:"AES-GCM", iv}, await DP.key(pass,salt,DP.ITER), new TextEncoder().encode(JSON.stringify(inhalt)));
+  return { format:DP.FORMAT, hinweis:"Verschlüsseltes SSG-Cockpit-Datenpaket. Laden in der App unter Einstellungen > Datenpaket.", kdf:{alg:"PBKDF2-SHA256", iter:DP.ITER, salt:DP.b64(salt)}, iv:DP.b64(iv), ct:DP.b64(ct) };
+ },
+ async entpacken(pkg, pass){
+  if(!pkg || pkg.format!==DP.FORMAT) throw new Error("Keine Datenpaket-Datei (Format unbekannt).");
+  let klar; try{ klar=await crypto.subtle.decrypt({name:"AES-GCM", iv:DP.unb64(pkg.iv)}, await DP.key(pass, DP.unb64(pkg.kdf.salt), pkg.kdf.iter), DP.unb64(pkg.ct)); }
+  catch(e){ throw new Error("Passphrase falsch oder Datei beschädigt."); }
+  const inhalt=JSON.parse(new TextDecoder().decode(klar)); if(inhalt.schema!==DP.FORMAT) throw new Error("Inhalt hat ein unbekanntes Format.");
+  return inhalt;
+ },
+ // Sprachnotizen werden zusammengeführt (keine Doppelten), alles andere überschrieben
+ uebernehmen(daten){
+  const alt=(()=>{ try{ return JSON.parse(store.get(DP.KEYS.deltas)||"[]"); }catch(e){ return []; } })();
+  let neu=[]; try{ neu=JSON.parse(daten.deltas||"[]"); }catch(e){}
+  const sig=d=>JSON.stringify([d.haus_id,d.datum,d.erstellt,d.id||""]); const da=new Set(alt.map(sig));
+  const merged=alt.concat(neu.filter(d=>!da.has(sig(d))));
+  for(const [n,k] of Object.entries(DP.KEYS)){ if(n==="deltas") continue; if(daten[n]!==undefined) store.set(k, daten[n]); }
+  store.set(DP.KEYS.deltas, JSON.stringify(merged));
+  return { notizen_neu: merged.length-alt.length, notizen_gesamt: merged.length };
+ }
+};
+window.__DP = DP; // für Tests
+window.addEventListener("DOMContentLoaded", ()=>{
+ const st=t=>{ $("dpStatus").textContent=t; };
+ $("btnDpSave").onclick=async ()=>{
+  const pass=$("dpPass").value; if(pass.length<10){ st("Bitte eine Passphrase mit mindestens 10 Zeichen eingeben."); return; }
+  if(!window.crypto || !crypto.subtle){ st("Verschlüsselung ist hier nicht verfügbar (App bitte über https öffnen)."); return; }
+  try{ const pkg=await DP.packen(pass); await shareFile(pkg, `ssg-datenpaket_${today()}.ssg`); st("Gesichert. Datei im OneDrive-Ordner SSG-Cockpit ablegen."); }
+  catch(e){ st("Sichern fehlgeschlagen: "+e.message); }
+ };
+ $("btnDpLoad").onclick=async ()=>{
+  const f=$("dpFile").files[0], pass=$("dpPass").value; if(!f){ st("Bitte zuerst eine .ssg-Datei wählen."); return; } if(!pass){ st("Bitte die Passphrase eingeben."); return; }
+  try{ const inhalt=await DP.entpacken(JSON.parse(await f.text()), pass);
+   if(!confirm(`Datenpaket vom ${inhalt.erstellt.slice(0,10)} übernehmen? Einstellungen werden ersetzt, Sprachnotizen zusammengeführt. Der API-Key bleibt unverändert.`)) return;
+   const r=DP.uebernehmen(inhalt.daten); loadSettings(); fillHaeuser(); loadDraft(); route();
+   st(`Übernommen: ${r.notizen_neu} neue Sprachnotizen, insgesamt ${r.notizen_gesamt}.`); toast("Datenpaket geladen");
+  }catch(e){ st(e.message); }
+ };
+});
 </script>
 </body>
 </html>
