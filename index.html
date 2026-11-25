@@ -134,6 +134,7 @@
  <section class="view" id="v-gewerke"></section>
  <section class="view" id="v-gewerk"></section>
  <section class="view" id="v-daten"></section>
+ <section class="view" id="v-assistent"></section>
 
  <!-- Sprachnotiz -->
  <section class="view" id="v-notiz">
@@ -216,7 +217,7 @@
 
 <script>
 "use strict";
-const VERSION = "2026-11-25 a";
+const VERSION = "2026-11-25 b";
 // =====================================================================
 // Beispieldaten (erfunden) aus der SSG-Datenmappe, Datenstand 2027-03.
 // Hausnamen sind in dieser Fassung neutral; echte Namen lokal in den
@@ -467,6 +468,7 @@ function vHome(){
  h += `<div class="card"><h2>Top-Prioritäten</h2>` + TOP10.slice(0,5).map((p,i)=>`<div class="li tap" data-go="haus/${p.haus}"><div class="sc t-x">${i+1}</div><div class="grow"><div class="ttl">${esc(p.thema)}</div><div class="sub">${esc(hname(p.haus))} · ${DLS[p.dl_id]} · Frist ${dde(p.frist)} · ${esc(p.owner)}</div></div>${CHEV}</div>`).join("") + `</div>`;
  h += `<div class="card"><h2>SSG gesamt</h2><div class="kv">` + SSG.kpi.map(k=>`<div>${esc(k[0])}</div><div>${esc(k[1])}</div>`).join("") + `</div><p class="muted" style="margin-bottom:0">Cluster: ` + Object.entries(SSG.cluster).map(([k,v])=>`${k} ${v}`).join(" · ") + `</p></div>
   <p class="muted" style="text-align:center">Alle Werte sind erfundene Beispieldaten.</p>`;
+ h = assistKarte() + h;
  $("v-home").innerHTML = h;
  if(installEvt) $("btnInstall").classList.remove("hidden");
 }
@@ -519,6 +521,7 @@ function vHaus(id){
    + `<p class="muted" style="margin-bottom:0">Im Beispiel ist der volle Steckbrief nur für ${esc(hname("H02"))} hinterlegt. Für dieses Haus zeigt die App die Werte aus dem Monatsreport.</p></div>`;
  }
  h += `<button class="cta" data-notiz="${esc(id)}">${MIC} Sprachnotiz zu diesem Haus</button>`;
+ h += `<button class="btn sec" style="margin-bottom:12px" data-go="assistent/${esc(id)}">Besuch vorbereiten (Assistent)</button>`;
  $("v-haus").innerHTML = h;
  const f = $("v-haus").querySelector(".neu-row");
  if(f && vHaus.scrollNeu){ vHaus.scrollNeu=false; setTimeout(()=>f.scrollIntoView({behavior:"smooth",block:"center"}),250); }
@@ -556,13 +559,13 @@ function vDaten(){
 // =====================================================================
 // Navigation (Hash-Routing, damit die Zurück-Taste funktioniert)
 // =====================================================================
-const TITLES = { home:"SSG Cockpit", haeuser:"Häuser", haus:"Steckbrief", gewerke:"Gewerke", gewerk:"Gewerk", notiz:"Sprachnotiz", daten:"Daten", settings:"Einstellungen" };
+const TITLES = { home:"SSG Cockpit", haeuser:"Häuser", haus:"Steckbrief", gewerke:"Gewerke", gewerk:"Gewerk", notiz:"Sprachnotiz", daten:"Daten", settings:"Einstellungen", assistent:"Assistent" };
 function go(path){ if(location.hash==="#"+path) route(); else location.hash = path; }
 function route(){
  const [v,arg] = (location.hash.replace(/^#/,"")||"home").split("/");
  const view = TITLES[v] ? v : "home";
  if(view!=="notiz") stopMic();
- ({home:vHome,haeuser:vHaeuser,haus:()=>vHaus(arg),gewerke:vGewerke,gewerk:()=>vGewerk(arg),daten:vDaten,settings:loadSettings,notiz:()=>{}})[view]();
+ ({home:vHome,haeuser:vHaeuser,haus:()=>vHaus(arg),gewerke:vGewerke,gewerk:()=>vGewerk(arg),daten:vDaten,settings:loadSettings,notiz:()=>{},assistent:()=>vAssistent(arg)})[view]();
  document.querySelectorAll(".view").forEach(s=>s.classList.toggle("on", s.id==="v-"+view));
  document.querySelectorAll("nav button").forEach(b=>b.classList.toggle("on", b.dataset.go===view || (view==="haus"&&b.dataset.go==="haeuser") || (view==="gewerk"&&b.dataset.go==="gewerke")));
  $("title").textContent = view==="haus" ? hname(arg) : view==="gewerk" ? (DLS[arg]||"Gewerk") : TITLES[view];
@@ -736,7 +739,7 @@ window.__exportObj = exportObj;
 // =====================================================================
 const DP = {
  FORMAT:"ssg-datenpaket-v1", ITER:310000,
- KEYS:{ erfasser:"ssg_erfasser", haeuser:"ssg_haeuser", model:"ssg_model", draft:"ssg_draft", deltas:"ssg_deltas" },
+ KEYS:{ erfasser:"ssg_erfasser", haeuser:"ssg_haeuser", model:"ssg_model", draft:"ssg_draft", deltas:"ssg_deltas", verlauf:"ssg_assist_verlauf", queue:"ssg_assist_queue" },
  b64(buf){ let s=""; const u=new Uint8Array(buf); for(let i=0;i<u.length;i++) s+=String.fromCharCode(u[i]); return btoa(s); },
  unb64(t){ const s=atob(t), u=new Uint8Array(s.length); for(let i=0;i<s.length;i++) u[i]=s.charCodeAt(i); return u; },
  async key(pass, salt, iter){
@@ -774,7 +777,7 @@ window.addEventListener("DOMContentLoaded", ()=>{
  $("btnDpSave").onclick=async ()=>{
   const pass=$("dpPass").value; if(pass.length<10){ st("Bitte eine Passphrase mit mindestens 10 Zeichen eingeben."); return; }
   if(!window.crypto || !crypto.subtle){ st("Verschlüsselung ist hier nicht verfügbar (App bitte über https öffnen)."); return; }
-  try{ const pkg=await DP.packen(pass); await shareFile(pkg, `ssg-datenpaket_${today()}.ssg`); st("Gesichert. Datei im OneDrive-Ordner SSG-Cockpit ablegen."); }
+  try{ const pkg=await DP.packen(pass); await shareFile(pkg, `ssg-datenpaket_${today()}.ssg`); store.set("ssg_dp_last", today()); st("Gesichert. Datei im OneDrive-Ordner SSG-Cockpit ablegen."); }
   catch(e){ st("Sichern fehlgeschlagen: "+e.message); }
  };
  $("btnDpLoad").onclick=async ()=>{
@@ -786,6 +789,188 @@ window.addEventListener("DOMContentLoaded", ()=>{
   }catch(e){ st(e.message); }
  };
 });
+</script>
+<script>
+"use strict";
+// =====================================================================
+// Assistent (Stufe 2)
+// 1. Regelbasierte Hinweise: laufen immer, auch ohne Internet.
+// 2. Fragen an Claude: Lagebild, Besuch vorbereiten, freie Frage.
+//    Tokenarm: fester Systemtext + kompaktes Kontextpaket (gecacht),
+//    keine Freitexte und keine Personennamen aus Notizen.
+//    Ohne Netz landen Fragen in einer Warteschlange.
+// =====================================================================
+const AS = { verlauf:"ssg_assist_verlauf", queue:"ssg_assist_queue", dpLast:"ssg_dp_last", MAXV:30 };
+const asList = k => { try{ return JSON.parse(store.get(k)||"[]"); }catch(e){ return []; } };
+const asSave = (k,v) => store.set(k, JSON.stringify(v));
+function tage(iso){ if(!iso) return null; const d=Date.parse(iso.length===7?iso+"-01":iso); return isNaN(d)?null:Math.round((d-Date.parse(today()))/864e5); }
+function fristText(n){ return n===null?"":n<0?`${-n} Tage überfällig`:n===0?"heute fällig":`Frist in ${n} Tagen`; }
+
+// ---------------------------------------------------------- 1. Regeln
+function regelHinweise(){
+ const H=[], ds=deltas(), add=(stufe,text,ziel)=>H.push({stufe,text,ziel});
+ const rote = ROTE.map(r=>({...r})).concat(ds.flatMap(d=>(d.rote_linien||[]).map(r=>({...r,haus:d.haus_id,art:r.art||r.thema||"Rote Linie"}))));
+ for(const r of rote){ const n=tage(r.frist); add(n!==null&&n<=14?"r":"y", `Rote Linie ${hname(r.haus)}: ${r.art}${r.frist?" · "+fristText(n):""}`, "haus/"+r.haus); }
+ for(const h of HOUSES){
+  if(h.score<50) add("r", `${hname(h.id)} im Rettungsmodus: Score ${h.score} (${trend(h.trend)})`, "haus/"+h.id);
+  else if(h.trend<=-4) add("y", `${hname(h.id)}: Score fällt ${trend(h.trend)} auf ${h.score}`, "haus/"+h.id);
+  if(h.abd<85) add("b", `${hname(h.id)}: Datenabdeckung nur ${h.abd} %, Kennzahlen unsicher`, "haus/"+h.id);
+ }
+ for(const p of TOP10){ const n=tage(p.frist); if(p.status!=="erledigt" && n!==null && n<=14) add(n<0?"r":"y", `Prio ${hname(p.haus)}: ${p.thema} · ${fristText(n)}`, "haus/"+p.haus); }
+ for(const d of ds) for(const t of d.todos||[]){ const n=tage(t.faellig); if(n!==null && n<=3) add(n<0?"r":"y", `To-do ${hname(d.haus_id)}: ${t.text} · ${fristText(n)}`, "haus/"+d.haus_id); }
+ const rf = ds.reduce((s,d)=>s+(d.rueckfragen||[]).length,0); if(rf) add("b", `${rf} offene Rückfrage${rf>1?"n":""} aus Sprachnotizen klären`, "daten");
+ for(const id of new Set(Object.keys(DETAIL).concat(ds.map(d=>d.haus_id)))){ const m=hausModell(id); const n=m?tage(m.naechster):null; if(n!==null && n>=0 && n<=7) add("b", `Besuch ${hname(id)} ${n===0?"heute":"in "+n+" Tagen"} · vorbereiten`, "assistent/"+id); }
+ const last=store.get(AS.dpLast), seit=last?-tage(last):null;
+ if(ds.length && (seit===null || seit>7)) add("y", last?`Datenpaket seit ${seit} Tagen nicht gesichert`:"Sprachnotizen noch nie als Datenpaket gesichert", "settings");
+ const q=asList(AS.queue).length; if(q) add("b", `${q} Frage${q>1?"n":""} an Claude warten auf Internet`, "assistent");
+ const rang={r:0,y:1,b:2}; return H.sort((a,b)=>rang[a.stufe]-rang[b.stufe]);
+}
+const STUFE = { r:["rl","dringend"], y:["","bald"], b:["","Info"] };
+function hinweisZeile(x){ return `<div class="li tap" data-go="${esc(x.ziel)}"><span class="tag ${STUFE[x.stufe][0]}">${STUFE[x.stufe][1]}</span><div class="grow"><div style="font-size:15px">${esc(x.text)}</div></div>${CHEV}</div>`; }
+function assistKarte(){
+ const H=regelHinweise(), r=H.filter(x=>x.stufe==="r").length;
+ return `<div class="card"><h2>Assistent: heute wichtig ${r?`<span class="tag rl">${r} dringend</span>`:""}</h2>`
+  + (H.length ? H.slice(0,3).map(hinweisZeile).join("") : `<p class="empty">Keine Hinweise.</p>`)
+  + `<button class="btn sec" style="margin-top:10px" data-go="assistent">Alle ${H.length} Hinweise und Fragen an Claude</button></div>`;
+}
+
+// ---------------------------------------------------------- 2. Kontextpakete
+const AS_SYSTEM = `Du bist der Assistent von Michael Milde, Geschäftsbereichsleiter Soft-Services der SSG (Servicegesellschaft der Caritas Altenhilfe, 23 Häuser in Berlin, Brandenburg und Vorpommern). Gewerke: DL1 Küche & Service, DL2 Reinigung, DL3 Wäscherei, DL4 Technik & Handwerk, DL5 Empfang/Service/Fahrdienst. Health Score 0 bis 100 je Haus und Gewerk (grün ab 80, gelb ab 50, rot darunter); eine rote Linie deckelt den Haus-Score auf 59.
+
+Regeln:
+- Deutsch, sachlich, kurz. Ergebnis zuerst, dann Begründung. Eine Empfehlung statt Optionslisten.
+- Nur Fakten aus dem Kontext verwenden. Fehlt etwas, sag es und markiere Annahmen als „Annahme“.
+- Jede Maßnahme mit Haus-ID, Gewerk, Owner-Vorschlag und Frist.
+- Keine Personennamen, keine Bewohner- oder Gesundheitsdaten. Rollen statt Namen.
+- Format: kurze Abschnitte mit „## “-Überschrift, Stichpunkte mit „- “. Höchstens 250 Wörter, außer die Frage verlangt mehr.
+- Keine langen Gedankenstriche, keine Floskeln.`;
+function kontextSSG(){
+ const L=[`Datenstand ${DATENSTAND} (Beispieldaten). SSG gesamt: Score ${SSG.score} (${trend(SSG.trend)}), Abdeckung ${SSG.abd} %.`,
+  "Dimensionen: "+Object.entries(SSG.dims).map(([k,v])=>`${k} ${v}`).join(", "),
+  "Gewerke: "+Object.entries(SSG.gewerk).map(([k,v])=>`${k} ${v}`).join(", "),
+  "Cluster: "+Object.entries(SSG.cluster).map(([k,v])=>`${k} ${v}`).join(", "),
+  "Kennzahlen: "+SSG.kpi.map(k=>`${k[0]} ${k[1]}`).join("; "),
+  "", "Häuser (ID | Plätze | Cluster | Score Trend | Abdeckung | DL1..DL5 | rote Linie):"];
+ for(const h of HOUSES) L.push(`${h.id} | ${h.plaetze} | ${h.cluster} | ${h.score} ${trend(h.trend)} | ${h.abd} % | ${["DL1","DL2","DL3","DL4","DL5"].map(k=>h.dl[k]??"-").join(" ")} | ${h.rl?"ja":"nein"}`);
+ L.push("", "Rote Linien:"); for(const r of ROTE) L.push(`- ${r.haus} ${r.dl_id}: ${r.art}, seit ${r.seit}, Frist ${r.frist}, ${r.status}`);
+ L.push("", "Top-Prioritäten:"); for(const p of TOP10) L.push(`- ${p.haus} ${p.dl_id}: ${p.thema}, Frist ${p.frist}, Owner ${p.owner}, ${p.status}`);
+ return L.join("\n");
+}
+function kontextNotizen(nurHaus){
+ const L=[]; for(const d of deltas().filter(x=>!nurHaus||x.haus_id===nurHaus).slice(-8)){
+  const b=d.besuch||{}; L.push(`- ${d.haus_id} Besuch ${d.datum}${b.satz_je_gewerk?": "+b.satz_je_gewerk:""}${b.naechster_schritt?" · nächster Schritt: "+b.naechster_schritt:""}`);
+  for(const t of d.todos||[]) L.push(`  To-do: ${t.text}${t.faellig?" (fällig "+t.faellig+")":""}`);
+  for(const p of d.prios||[]) L.push(`  Prio: ${p.dl_id||""} ${p.thema}${p.frist?" bis "+p.frist:""}`);
+  for(const r of d.rote_linien||[]) L.push(`  Rote Linie: ${r.art||r.thema||""}`);
+  for(const q of d.rueckfragen||[]) L.push(`  Rückfrage: ${typeof q==="string"?q:(q.frage||JSON.stringify(q))}`);
+ }
+ return L.length ? "Neue Sprachnotizen (strukturiert, ohne Freitext):\n"+L.join("\n") : "Keine neuen Sprachnotizen.";
+}
+function kontextHaus(id){
+ const m=hausModell(id); if(!m) return `Haus ${id}: keine Daten.`;
+ const d=m.det, L=[`Haus ${id}: Plätze ${m.plaetze}, Cluster ${m.cluster}, Score ${m.score} (${trend(m.trend)}), Abdeckung ${m.abd} %. Gewerke: ${Object.entries(m.dl).map(([k,v])=>`${k} ${v??"-"}`).join(", ")}.`];
+ if(d){ L.push(`Typ ${d.typ}; Belegung ${d.belegung}; Küche ${d.kueche}; letzter Besuch ${m.letzter||"-"}; nächster Besuch ${m.naechster||"-"}.`);
+  L.push("Haus-Kennzahlen: "+d.kpi.map(k=>`${k[0]} ${k[1]}`).join("; "));
+  for(const [k,g] of Object.entries(d.dl)) L.push(`${k} (${g.status}): ${[g.team,g.betrieb,g.lv,g.equipment,g.hinweis].filter(Boolean).join("; ")}${g.eindruck?"; Eindruck "+g.eindruck+"/5":""}${(g.kpi||[]).length?"; "+g.kpi.map(x=>`${x.id} ${x.name} ${x.wert} ${x.einheit}`).join(", "):""}`);
+  L.push("Ansprechpartner (nur Rollen): "+m.ap.filter(a=>!a.abgeloest).map(a=>`${a.seite} ${a.rolle}`).join(", "));
+  for(const g of m.gtk) L.push(`Good to know ${g.k}: ${g.v}`);
+ } else L.push(`Kein ausführlicher Steckbrief hinterlegt; nächster Besuch ${m.naechster||"unbekannt"}.`);
+ L.push("Prios: "+(m.prios.map(p=>`${p.dl_id} ${p.thema} (${p.status}, Frist ${p.frist||"-"})`).join("; ")||"keine"));
+ L.push("Rote Linien: "+(m.rote.map(r=>`${r.dl_id||""} ${r.art||r.thema||""} (Frist ${r.frist||"-"})`).join("; ")||"keine"));
+ L.push(kontextNotizen(id));
+ return L.join("\n");
+}
+const AUFGABE = {
+ lage: ()=>`Heute ist ${today()}. Erstelle mein Lagebild: ## Heute wichtig (höchstens 5 Punkte, dringendste zuerst), ## Risiken (Häuser mit Begründung), ## Vorschlag für diese Woche (3 konkrete Maßnahmen). Regelhinweise der App:\n`+regelHinweise().slice(0,12).map(x=>"- "+x.text).join("\n")+"\n\n"+kontextNotizen(),
+ besuch: id=>`Heute ist ${today()}. Bereite meinen Besuch in ${id} vor: ## Ziel des Besuchs (ein Satz), ## Gesprächsleitfaden (5 Punkte mit Gewerk), ## Prüfen vor Ort (Checkliste), ## Offene Zusagen und Fristen.\n\n`+kontextHaus(id),
+ frage: (text,id)=>`Heute ist ${today()}. Frage: ${text}`+(id?"\n\nKontext zum Haus:\n"+kontextHaus(id):"\n\n"+kontextNotizen())
+};
+
+// ---------------------------------------------------------- API
+function antwortText(j){
+ if(j.stop_reason==="refusal") throw new Error("Claude hat die Anfrage abgelehnt"+(j.stop_details&&j.stop_details.category?" ("+j.stop_details.category+")":"")+". Bitte anders formulieren.");
+ const t=(j.content||[]).filter(c=>c.type==="text").map(c=>c.text).join("\n").trim();
+ if(!t) throw new Error(j.stop_reason==="max_tokens"?"Antwort abgeschnitten (Tokenlimit). Bitte enger fragen.":"Leere Antwort erhalten.");
+ return t;
+}
+async function fragen(job){
+ const key=store.get(LS.key); if(!key) throw new Error("Kein API-Key. Bitte in den Einstellungen eintragen.");
+ const model=store.get(LS.model)||"claude-sonnet-5-5";
+ const user = job.art==="lage" ? AUFGABE.lage() : job.art==="besuch" ? AUFGABE.besuch(job.haus) : AUFGABE.frage(job.frage, job.haus);
+ const body={ model, max_tokens:8000, output_config:{effort:"medium"},
+  system:[{type:"text",text:AS_SYSTEM},{type:"text",text:"Kontext SSG:\n"+kontextSSG(),cache_control:{type:"ephemeral"}}],
+  messages:[{role:"user",content:user}] };
+ const r=await fetch("https://api.anthropic.com/v1/messages",{ method:"POST", headers:{ "content-type":"application/json","x-api-key":key,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true" }, body:JSON.stringify(body) });
+ if(!r.ok){ const t=await r.text(); throw Object.assign(new Error("API "+r.status+": "+t.slice(0,300)),{status:r.status}); }
+ const j=await r.json(), u=j.usage||{};
+ return { text:antwortText(j), model:j.model||model, tokens:{ein:u.input_tokens||0, aus:u.output_tokens||0, cache:u.cache_read_input_tokens||0} };
+}
+const ART = { lage:"Lagebild", besuch:"Besuch vorbereiten", frage:"Frage" };
+function titel(job){ return ART[job.art]+(job.haus?" · "+hname(job.haus):"")+(job.frage?": "+job.frage.slice(0,60):""); }
+async function ausfuehren(job){
+ const st=$("asStatus");
+ if(!navigator.onLine){ const q=asList(AS.queue); q.push(job); asSave(AS.queue,q); vAssistent(job.haus); showStatus($("asStatus"),"Kein Internet: Frage gespeichert, sie wird gesendet, sobald du wieder online bist.","warn"); return; }
+ showStatus(st,`${ART[job.art]} läuft…`,"ok"); document.querySelectorAll("#v-assistent button.ask").forEach(b=>b.disabled=true);
+ try{
+  const a=await fragen(job); const v=asList(AS.verlauf); v.unshift({...job, ...a, zeit:new Date().toISOString()}); asSave(AS.verlauf, v.slice(0,AS.MAXV));
+  vAssistent(job.haus); showStatus($("asStatus"),`Fertig. ${a.tokens.ein+a.tokens.cache} Token rein (${a.tokens.cache} aus Cache), ${a.tokens.aus} raus.`,"ok");
+ }catch(e){
+  if(e instanceof TypeError){ const q=asList(AS.queue); q.push(job); asSave(AS.queue,q); vAssistent(job.haus); showStatus($("asStatus"),"Keine Verbindung: Frage in die Warteschlange gelegt.","warn"); }
+  else { showStatus(st,"Fehler: "+e.message,"err"); document.querySelectorAll("#v-assistent button.ask").forEach(b=>b.disabled=false); }
+ }
+}
+async function warteschlangeSenden(){
+ if(!navigator.onLine || !store.get(LS.key)) return;
+ let q=asList(AS.queue); if(!q.length) return; toast(q.length>1?`${q.length} wartende Fragen werden gesendet`:"1 wartende Frage wird gesendet");
+ while(q.length){ const job=q[0];
+  try{ const a=await fragen(job); const v=asList(AS.verlauf); v.unshift({...job,...a,zeit:new Date().toISOString(),ausWarteschlange:true}); asSave(AS.verlauf,v.slice(0,AS.MAXV)); }
+  catch(e){ if(e instanceof TypeError) break; const v=asList(AS.verlauf); v.unshift({...job,text:"Fehler: "+e.message,fehler:true,zeit:new Date().toISOString()}); asSave(AS.verlauf,v.slice(0,AS.MAXV)); }
+  q=asList(AS.queue).slice(1); asSave(AS.queue,q);
+ }
+ if(location.hash.startsWith("#assistent")) route();
+}
+
+// ---------------------------------------------------------- Darstellung
+function md(t){
+ const inl=s=>esc(s).replace(/\*\*(.+?)\*\*/g,"<b>$1</b>");
+ let out="", inList=false;
+ for(const raw of String(t).split("\n")){ const l=raw.trim();
+  const li=/^[-*•]\s+(.*)$/.exec(l)||/^\d+[.)]\s+(.*)$/.exec(l);
+  if(li){ if(!inList){ out+="<ul>"; inList=true; } out+=`<li>${inl(li[1])}</li>`; continue; }
+  if(inList){ out+="</ul>"; inList=false; }
+  const hd=/^#{1,4}\s+(.*)$/.exec(l);
+  if(hd) out+=`<div class="sech">${inl(hd[1])}</div>`; else if(l) out+=`<p style="margin:6px 0">${inl(l)}</p>`;
+ }
+ return out+(inList?"</ul>":"");
+}
+function vAssistent(hausId){
+ const H=regelHinweise(), q=asList(AS.queue), v=asList(AS.verlauf), key=!!store.get(LS.key);
+ const opts=haeuser().filter(h=>HOUSES.some(x=>x.id===h.id)).map(h=>`<option value="${esc(h.id)}"${h.id===hausId?" selected":""}>${esc(h.id)} · ${esc(h.name)}</option>`).join("");
+ let h=`<div class="card"><h2>Hinweise (ohne Internet)</h2>${H.length?H.map(hinweisZeile).join(""):'<p class="empty">Keine Hinweise.</p>'}</div>
+ <div class="card"><h2>Claude fragen ${navigator.onLine?'<span class="tag ok">online</span>':'<span class="tag">offline</span>'}</h2>
+  ${key?"":'<p class="muted" style="margin-top:0">Für Fragen an Claude bitte den API-Key in den <a href="#settings">Einstellungen</a> eintragen. Die Hinweise oben funktionieren ohne.</p>'}
+  <button class="btn ask" id="asLage">Lagebild: Was ist diese Woche wichtig?</button>
+  <label style="margin-top:12px">Haus</label><select id="asHaus"><option value="">alle Häuser</option>${opts}</select>
+  <button class="btn sec ask" id="asBesuch" style="margin-top:8px">Besuch vorbereiten</button>
+  <label style="margin-top:12px">Eigene Frage</label><textarea id="asFrage" placeholder="z. B. Welche Häuser brauchen bei der Reinigung zuerst ein neues Leistungsverzeichnis?" style="min-height:80px"></textarea>
+  <button class="btn sec ask" id="asFragen" style="margin-top:8px">Fragen</button>
+  <div class="status" id="asStatus"></div>
+  <p class="muted" style="margin-bottom:0">Gesendet werden nur Kennzahlen, Prios, To-dos und Rollen, keine Freitexte und keine Namen aus Notizen. Stammdaten werden zwischengespeichert, Folgefragen sind dadurch günstiger.</p></div>`;
+ if(q.length) h+=`<div class="card"><h2>Warteschlange (${q.length})</h2>${q.map(j=>`<div class="li"><div class="grow">${esc(titel(j))}</div></div>`).join("")}<button class="btn sec" id="asQSend" style="margin-top:8px">Jetzt senden</button> <button class="btn warn" id="asQDel" style="margin-top:8px">Warteschlange leeren</button></div>`;
+ if(v.length) h+=`<div class="card"><h2>Antworten</h2>${v.map((a,i)=>`<details ${i===0?"open":""} style="border-top:1px solid #e3e8ee;padding:8px 0"><summary style="cursor:pointer;font-weight:600">${esc(titel(a))} <span class="muted" style="font-weight:400">· ${esc(new Date(a.zeit).toLocaleString("de-DE",{day:"2-digit",month:"2-digit",year:"numeric",hour:"2-digit",minute:"2-digit"}))}</span></summary><div class="small" style="margin-top:6px">${a.fehler?`<p class="c-r">${esc(a.text)}</p>`:md(a.text)}</div>${a.tokens?`<div class="muted" style="font-size:12px">${esc(a.model)} · ${a.tokens.ein+a.tokens.cache} rein, davon ${a.tokens.cache} Cache · ${a.tokens.aus} raus</div>`:""}</details>`).join("")}<button class="btn warn" id="asVDel" style="margin-top:8px">Antworten löschen</button></div>`;
+ $("v-assistent").innerHTML=h;
+ const haus=()=>$("asHaus").value;
+ $("asLage").onclick=()=>ausfuehren({art:"lage"});
+ $("asBesuch").onclick=()=>{ if(!haus()){ showStatus($("asStatus"),"Bitte ein Haus wählen.","warn"); return; } ausfuehren({art:"besuch",haus:haus()}); };
+ $("asFragen").onclick=()=>{ const t=$("asFrage").value.trim(); if(t.length<5){ showStatus($("asStatus"),"Bitte eine Frage eingeben.","warn"); return; } ausfuehren({art:"frage",frage:t,haus:haus()||undefined}); };
+ if($("asQSend")) $("asQSend").onclick=warteschlangeSenden;
+ if($("asQDel")) $("asQDel").onclick=()=>{ if(confirm("Wartende Fragen löschen?")){ store.del(AS.queue); vAssistent(hausId); } };
+ if($("asVDel")) $("asVDel").onclick=()=>{ if(confirm("Alle gespeicherten Antworten auf diesem Gerät löschen?")){ store.del(AS.verlauf); vAssistent(hausId); } };
+}
+window.addEventListener("online", ()=>{ warteschlangeSenden(); if(location.hash.startsWith("#assistent")) route(); });
+window.addEventListener("offline", ()=>{ if(location.hash.startsWith("#assistent")) route(); });
+window.addEventListener("DOMContentLoaded", ()=>{ setTimeout(warteschlangeSenden, 1500); });
+window.__AS = { regelHinweise, kontextSSG, kontextHaus, fragen }; // für Tests
 </script>
 </body>
 </html>
